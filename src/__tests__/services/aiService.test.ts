@@ -22,7 +22,6 @@ jest.mock('openai', () => {
 })
 
 describe('AIService', () => {
-  let mockOpenAI: jest.Mocked<OpenAI>
   let originalEnv: typeof process.env
 
   beforeEach(() => {
@@ -69,7 +68,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       const result = await AIService.estimateTask(mockRequest)
 
@@ -94,7 +93,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('AI見積もりの取得に失敗しました')
     })
@@ -112,7 +111,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('AI見積もりの取得に失敗しました')
     })
@@ -133,7 +132,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       const result = await AIService.estimateTask(mockRequest)
 
@@ -171,7 +170,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       await AIService.estimateTask(mockRequest)
 
@@ -244,7 +243,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       const result = await AIService.generateScheduleRecommendations(mockTasks)
 
@@ -273,7 +272,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       const result = await AIService.generateScheduleRecommendations(mockTasks)
 
@@ -296,7 +295,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       const result = await AIService.generateScheduleRecommendations(mockTasks)
 
@@ -322,7 +321,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       const result = await AIService.generateScheduleRecommendations(mockTasks)
 
@@ -361,7 +360,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       await AIService.generateScheduleRecommendations(mockTasks)
 
@@ -414,7 +413,7 @@ describe('AIService', () => {
         ],
       }
 
-      mockCreate.mockResolvedValue(mockResponse as any)
+      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
       const result = await AIService.generateScheduleRecommendations(tasksWithoutEstimate)
 
