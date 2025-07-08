@@ -174,7 +174,7 @@ describe('TaskForm', () => {
     // チャットでメッセージを送信
     const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
     await user.type(chatInput, 'プレゼンテーション資料作成')
-    await user.click(screen.getByRole('button', { name: '送信' }))
+    await user.click(screen.getByRole('button', { name: /送信|メッセージを送信/ }))
 
     // 見積もり結果が表示されるまで待機
     await waitFor(() => {
@@ -235,7 +235,7 @@ describe('TaskForm', () => {
 
     // チャット入力とボタンが表示されることを確認
     const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
-    const sendButton = screen.getByRole('button', { name: '送信' })
+    const sendButton = screen.getByRole('button', { name: /送信|メッセージを送信/ })
 
     expect(chatInput).toBeInTheDocument()
     expect(sendButton).toBeInTheDocument()
