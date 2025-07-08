@@ -72,6 +72,7 @@ JSON形式のみで回答してください。
         const parsed = JSON.parse(response);
         return {
           estimated_hours: parsed.estimated_hours || 2,
+          hours: parsed.estimated_hours || 2, // 下位互換性のため
           confidence_score: parsed.confidence_score || 0.5,
           reasoning: parsed.reasoning || 'AI推定',
           questions: parsed.questions || [],
