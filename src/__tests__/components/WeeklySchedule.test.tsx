@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { WeeklySchedule } from '@/components/WeeklySchedule'
 import { Task, TaskScheduleWithTask } from '@/lib/types'
 
@@ -180,7 +180,9 @@ describe('WeeklySchedule', () => {
       expect(screen.getAllByText('スケジュール生成')[0]).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getAllByText('スケジュール生成')[0])
+    await act(async () => {
+      fireEvent.click(screen.getAllByText('スケジュール生成')[0])
+    })
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith('/api/schedule/generate', {
