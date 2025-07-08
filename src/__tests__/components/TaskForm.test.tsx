@@ -46,7 +46,7 @@ describe('TaskForm', () => {
     render(<TaskForm {...defaultProps} />)
 
     expect(screen.getByText('新規タスク')).toBeInTheDocument()
-    expect(screen.getByText('AIが自動で作業時間を見積もります')).toBeInTheDocument()
+    expect(screen.getByText('AIチャットでタスクを詳しく相談して、フォームに自動反映できます')).toBeInTheDocument()
     expect(screen.getByLabelText('タイトル *')).toBeInTheDocument()
     expect(screen.getByLabelText('詳細説明')).toBeInTheDocument()
     expect(screen.getByText('優先度 *')).toBeInTheDocument()
