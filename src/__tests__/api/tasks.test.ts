@@ -5,7 +5,7 @@
 import { GET, POST } from '@/app/api/tasks/route'
 import { GET as getTaskById, PUT, DELETE } from '@/app/api/tasks/[id]/route'
 import { NextRequest } from 'next/server'
-import { defaultTestTasks } from '../mocks/database'
+import { defaultTestTasks } from '@/test-utils/testData'
 
 // TaskServiceのモック
 jest.mock('@/lib/services/taskService', () => ({
