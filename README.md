@@ -35,6 +35,9 @@ AI搭載のタスク管理と週間スケジュール作成ツールです。
 - **AI統合**: OpenAI GPT-4 API
 - **フォーム管理**: React Hook Form + Zod
 - **状態管理**: React Hooks
+- **テスト**: Jest + React Testing Library
+- **CI/CD**: GitHub Actions
+- **コード品質**: ESLint + TypeScript + Codecov
 
 ## セットアップ
 
@@ -155,6 +158,50 @@ npm run build
 ```bash
 npm start
 ```
+
+## テスト
+
+### テストの実行
+
+```bash
+# 全てのテストを実行
+npm test
+
+# カバレッジ付きでテストを実行
+npm run test:coverage
+
+# ウォッチモードでテストを実行
+npm run test:watch
+
+# CI環境でのテスト実行
+npm run test:ci
+```
+
+### テストの構成
+
+- **API テスト**: `/api/tasks`, `/api/estimate` のエンドポイントテスト
+- **サービステスト**: TaskService, AIService のビジネスロジックテスト
+- **コンポーネントテスト**: React コンポーネントの動作テスト
+- **カバレッジ**: 包括的なテストカバレッジを維持
+
+### CI/CD パイプライン
+
+GitHub Actions による自動化：
+
+- **継続的インテグレーション**: テスト、lint、ビルドの自動実行
+- **セキュリティスキャン**: npm audit、CodeQL による脆弱性チェック
+- **依存関係管理**: Dependabot による自動アップデート
+- **コード品質**: ESLint、TypeScript チェック
+- **カバレッジ報告**: Codecov による品質追跡
+
+### 開発ワークフロー
+
+1. 機能開発またはバグ修正
+2. 自動テスト実行
+3. Pull Request 作成
+4. CI パイプライン実行
+5. コードレビュー
+6. メインブランチへマージ
 
 ---
 

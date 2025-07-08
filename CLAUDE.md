@@ -12,6 +12,14 @@ npm run start        # Start production server
 npm run lint         # Run ESLint
 ```
 
+### Testing
+```bash
+npm test             # Run all tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+npm run test:ci      # Run tests in CI mode (no watch, with coverage)
+```
+
 ### Common Development Tasks
 ```bash
 # Run development server
@@ -22,6 +30,9 @@ npm run build && npm run start
 
 # Check for type errors and linting issues
 npm run build  # Includes TypeScript checking and linting
+
+# Run full quality checks (as done in CI)
+npm run lint && npm run test:ci && npm run build
 ```
 
 ### Docker Development
@@ -52,6 +63,8 @@ This is a Japanese-language AI-powered task management application built with Ne
 - **Database**: SQLite with better-sqlite3 (local file storage)
 - **AI Integration**: OpenAI GPT-4 API with intelligent fallback
 - **Forms**: React Hook Form + Zod validation
+- **Testing**: Jest + React Testing Library (97 comprehensive tests)
+- **CI/CD**: GitHub Actions (automated testing, linting, security scanning)
 
 ### High-Level Architecture
 
@@ -151,6 +164,45 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 
 ### Testing the Application
 
+#### Automated Testing Suite
+The application includes a comprehensive test suite with 97 tests covering:
+
+- **API Endpoint Tests** (`src/__tests__/api/`)
+  - `/api/tasks` CRUD operations
+  - `/api/estimate` AI estimation functionality
+  - Error handling and edge cases
+
+- **Service Layer Tests** (`src/__tests__/services/`)
+  - `TaskService` business logic and database operations
+  - `AIService` OpenAI integration and fallback mechanisms
+  - Edge cases and error scenarios
+
+- **Component Tests** (`src/__tests__/components/`)
+  - `TaskManager` orchestration and tab navigation
+  - `TaskForm` form validation and AI integration
+  - `WeeklySchedule` calendar visualization and scheduling
+
+#### Test Configuration
+- **Framework**: Jest with Next.js integration
+- **Environment**: jsdom for component tests, node for API tests
+- **Coverage**: Comprehensive coverage reporting with lcov format
+- **Mocking**: Service-level mocking strategy for reliable tests
+
+#### Running Tests
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run in watch mode during development
+npm run test:watch
+
+# Run in CI mode (used by GitHub Actions)
+npm run test:ci
+```
+
 #### Manual Testing Workflow
 1. Start development server: `npm run dev`
 2. Test task creation with and without AI estimation
@@ -164,3 +216,44 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 - Schedule generation with various task combinations
 - Form validation and error handling
 - Mobile responsive behavior
+
+### CI/CD Pipeline
+
+#### GitHub Actions Workflows
+- **CI Workflow** (`.github/workflows/ci.yml`)
+  - Automated testing on Node.js 20.x
+  - ESLint and TypeScript checking
+  - Build verification
+  - Coverage reporting to Codecov
+
+- **Security Workflow** (`.github/workflows/security.yml`)
+  - npm audit for dependency vulnerabilities
+  - CodeQL static analysis for security issues
+  - Weekly scheduled security scans
+
+- **Docker Workflow** (`.github/workflows/docker.yml`)
+  - Docker image building and testing
+  - Container registry publishing (on main branch)
+
+#### Dependency Management
+- **Dependabot** (`.github/dependabot.yml`)
+  - Weekly automated dependency updates
+  - Separate handling for npm and Docker dependencies
+  - Automatic PR creation with proper labeling
+
+#### Quality Gates
+Before any code reaches production:
+1. All tests must pass
+2. ESLint checks must pass
+3. TypeScript compilation must succeed
+4. Build process must complete successfully
+5. Security scans must pass
+
+#### Development Workflow
+1. Create feature branch from main
+2. Implement changes with tests
+3. Run `npm run lint && npm run test:ci && npm run build`
+4. Create Pull Request
+5. CI pipeline runs automatically
+6. Code review and approval
+7. Merge to main triggers deployment pipeline
