@@ -14,9 +14,8 @@ const customRender = (
 export * from '@testing-library/react'
 export { customRender as render }
 
-// ファイルにテストを追加してJestエラーを防ぐ
-describe('Test utilities', () => {
-  it('should export custom render function', () => {
-    expect(customRender).toBeDefined()
-  })
+// Jest requires at least one test per file
+it('should export custom render function', () => {
+  expect(customRender).toBeDefined()
 })
+
