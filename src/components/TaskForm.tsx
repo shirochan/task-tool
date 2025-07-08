@@ -225,7 +225,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                     </div>
                   ) : (
                     chatMessages.map((message, index) => (
-                      <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div key={`${message.timestamp.getTime()}-${index}`} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div 
                           className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                             message.type === 'user' 
