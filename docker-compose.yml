@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./.env.local:/app/.env.local:ro
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # 開発環境用のオーバーライド
+  app-dev:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    profiles:
+      - dev
