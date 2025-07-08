@@ -29,7 +29,6 @@ describe('/api/tasks', () => {
       const mockGetAllTasks = TaskService.getAllTasks as jest.Mock
       mockGetAllTasks.mockReturnValue(defaultTestTasks)
 
-      const request = new NextRequest('http://localhost:3000/api/tasks')
       const response = await GET()
       const data = await response.json()
 
@@ -46,7 +45,6 @@ describe('/api/tasks', () => {
       const mockGetAllTasks = TaskService.getAllTasks as jest.Mock
       mockGetAllTasks.mockReturnValue([])
 
-      const request = new NextRequest('http://localhost:3000/api/tasks')
       const response = await GET()
       const data = await response.json()
 
@@ -140,7 +138,7 @@ describe('/api/tasks', () => {
 
       const invalidInput = {
         title: 'テストタスク',
-        priority: 'invalid' as any,
+        priority: 'invalid' as 'must' | 'want',
       }
 
       const createdTask = {
