@@ -258,7 +258,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                   value={currentMessage}
                   onChange={(e) => setCurrentMessage(e.target.value)}
                   placeholder="タスクについて質問してください... (Shift+Enterで改行、Enterで送信)"
-                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()}
                   disabled={isEstimating}
                   rows={2}
                   className="resize-none"
