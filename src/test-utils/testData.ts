@@ -94,8 +94,3 @@ export const defaultTestTasks: Task[] = [
   },
 ]
 
-// Jest requires at least one test per file
-it('should export mock database utilities', () => {
-  expect(mockDatabase).toBeDefined()
-  expect(defaultTestTasks).toHaveLength(2)
-})
