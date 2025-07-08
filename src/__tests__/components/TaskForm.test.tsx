@@ -46,7 +46,7 @@ describe('TaskForm', () => {
     render(<TaskForm {...defaultProps} />)
 
     expect(screen.getByText('新規タスク')).toBeInTheDocument()
-    expect(screen.getByText('AIが自動で作業時間を見積もります')).toBeInTheDocument()
+    expect(screen.getByText('AIチャットでタスクを詳しく相談して、フォームに自動反映できます')).toBeInTheDocument()
     expect(screen.getByLabelText('タイトル *')).toBeInTheDocument()
     expect(screen.getByLabelText('詳細説明')).toBeInTheDocument()
     expect(screen.getByText('優先度 *')).toBeInTheDocument()
@@ -153,85 +153,44 @@ describe('TaskForm', () => {
     })
   })
 
-  it('AI見積もりが正常に動作する', async () => {
+  it('フォームに反映ボタンが正常に動作する', async () => {
     const user = userEvent.setup()
-    const mockEstimate = {
-      hours: 3.5,
-      reasoning: 'プレゼンテーション資料作成には調査と作成が必要',
-      questions: ['どのような形式の資料ですか？', '参考資料はありますか？'],
-    }
     
     ;(global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockEstimate),
+      json: () => Promise.resolve({ 
+        estimated_hours: 3.5, 
+        hours: 3.5, 
+        reasoning: 'プレゼンテーション資料作成には調査と作成が必要', 
+        questions: ['どのような形式の資料ですか？', '参考資料はありますか？'] 
+      }),
     })
 
     render(<TaskForm {...defaultProps} />)
 
-    // タイトルを入力
-    await user.type(screen.getByLabelText('タイトル *'), 'プレゼンテーション資料作成')
-    
-    // AI見積もりボタンをクリック
-    await user.click(screen.getByRole('button', { name: 'AI見積もり' }))
+    // AI相談タブに切り替え
+    await user.click(screen.getByRole('tab', { name: /AI相談/ }))
 
+    // チャットでメッセージを送信
+    const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
+    await user.type(chatInput, 'プレゼンテーション資料作成')
+    await user.click(screen.getByRole('button', { name: /送信|メッセージを送信/ }))
+
+    // 見積もり結果が表示されるまで待機
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/estimate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          task: {
-            priority: 'want',
-            title: 'プレゼンテーション資料作成',
-            description: '',
-            category: '',
-            estimated_hours: null,
-          },
-        }),
-      })
+      expect(screen.getByText(/見積もり結果: 3.5時間/)).toBeInTheDocument()
     })
 
-    // AI見積もり結果が表示される
+    // フォームに反映ボタンをクリック
+    await user.click(screen.getByRole('button', { name: /フォームに反映/ }))
+
+    // タスクフォームタブに切り替わることを確認
     await waitFor(() => {
-      expect(screen.getByText('AI見積もり結果')).toBeInTheDocument()
-      expect(screen.getByText('推定時間: 3.5時間')).toBeInTheDocument()
-      expect(screen.getByText('理由: プレゼンテーション資料作成には調査と作成が必要')).toBeInTheDocument()
-      expect(screen.getByText('より正確な見積もりのための質問:')).toBeInTheDocument()
-      expect(screen.getByText('どのような形式の資料ですか？')).toBeInTheDocument()
-      expect(screen.getByText('参考資料はありますか？')).toBeInTheDocument()
+      expect(screen.getByRole('tabpanel', { name: /タスクフォーム/ })).toBeVisible()
     })
 
-    // 見積もり時間が自動で入力される
+    // 見積もり時間がフォームに入力されることを確認
     expect(screen.getByDisplayValue('3.5')).toBeInTheDocument()
-  })
-
-  it('タイトルが未入力の場合AI見積もりでアラートが表示される', async () => {
-    const user = userEvent.setup()
-    render(<TaskForm {...defaultProps} />)
-
-    // AI見積もりボタンをタイトル未入力でクリック
-    await user.click(screen.getByRole('button', { name: 'AI見積もり' }))
-
-    expect(global.alert).toHaveBeenCalledWith('タイトルを入力してください')
-    expect(global.fetch).not.toHaveBeenCalled()
-  })
-
-  it('AI見積もりが失敗した場合エラーメッセージが表示される', async () => {
-    const user = userEvent.setup()
-    
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-    })
-
-    render(<TaskForm {...defaultProps} />)
-
-    await user.type(screen.getByLabelText('タイトル *'), 'テストタスク')
-    await user.click(screen.getByRole('button', { name: 'AI見積もり' }))
-
-    await waitFor(() => {
-      expect(global.alert).toHaveBeenCalledWith('見積もりの取得に失敗しました')
-    })
   })
 
   it('優先度の選択が正常に動作する', async () => {
@@ -256,30 +215,38 @@ describe('TaskForm', () => {
 
 
 
-  it('AI見積もり中はボタンが無効化される', async () => {
+  it('AIチャット機能が正常に動作する', async () => {
     const user = userEvent.setup()
     
-    // レスポンスを遅延させる
-    ;(global.fetch as jest.Mock).mockImplementation(() => 
-      new Promise(resolve => setTimeout(() => resolve({
-        ok: true,
-        json: () => Promise.resolve({ hours: 2, reasoning: 'test', questions: [] }),
-      }), 100))
-    )
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ 
+        estimated_hours: 2, 
+        hours: 2, 
+        reasoning: 'テスト用の見積もり理由', 
+        questions: ['テスト質問1', 'テスト質問2'] 
+      }),
+    })
 
     render(<TaskForm {...defaultProps} />)
 
-    await user.type(screen.getByLabelText('タイトル *'), 'テストタスク')
-    
-    const estimateButton = screen.getByRole('button', { name: 'AI見積もり' })
-    await user.click(estimateButton)
+    // AI相談タブに切り替え
+    await user.click(screen.getByRole('tab', { name: /AI相談/ }))
 
-    // AI見積もり中はボタンのテキストが変わり、無効化される
-    expect(screen.getByRole('button', { name: 'AI見積もり中...' })).toBeDisabled()
+    // チャット入力とボタンが表示されることを確認
+    const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
+    const sendButton = screen.getByRole('button', { name: /送信|メッセージを送信/ })
+
+    expect(chatInput).toBeInTheDocument()
+    expect(sendButton).toBeInTheDocument()
+
+    // メッセージを入力して送信
+    await user.type(chatInput, 'プレゼンテーション資料作成')
+    await user.click(sendButton)
 
     // 見積もり完了まで待機
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'AI見積もり' })).not.toBeDisabled()
+      expect(screen.getByText(/見積もり結果: 2時間/)).toBeInTheDocument()
     })
   })
 })

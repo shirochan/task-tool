@@ -85,7 +85,8 @@ function generateMockEstimate(task: { title: string; description?: string; prior
   }
 
   return {
-    hours: Math.max(0.5, hours),
+    estimated_hours: Math.max(0.5, hours),
+    hours: Math.max(0.5, hours), // 下位互換性のため
     confidence_score: Math.max(0.1, Math.min(1.0, confidence)),
     reasoning,
     questions,
