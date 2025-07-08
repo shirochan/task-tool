@@ -212,7 +212,12 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
               </p>
               
               <ScrollArea className="h-96 w-full border rounded-lg bg-white p-4">
-                <div className="space-y-4">
+                <div 
+                  className="space-y-4" 
+                  role="log" 
+                  aria-live="polite" 
+                  aria-label="AIチャット履歴"
+                >
                   {chatMessages.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                       <Bot className="h-12 w-12 mx-auto mb-2 text-gray-400" />
@@ -221,11 +226,15 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                   ) : (
                     chatMessages.map((message, index) => (
                       <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                          message.type === 'user' 
-                            ? 'bg-blue-500 text-white' 
-                            : 'bg-gray-100 text-gray-900'
-                        }`}>
+                        <div 
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            message.type === 'user' 
+                              ? 'bg-blue-500 text-white' 
+                              : 'bg-gray-100 text-gray-900'
+                          }`}
+                          role="article"
+                          aria-label={`${message.type === 'user' ? 'ユーザー' : 'AI'}からのメッセージ`}
+                        >
                           <div className="flex items-center gap-2 mb-1">
                             {message.type === 'user' ? (
                               <User className="h-4 w-4" />
@@ -263,10 +272,20 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                   disabled={isEstimating}
                   rows={2}
                   className="resize-none"
+                  aria-label="AIに送信するメッセージを入力"
+                  aria-describedby="chat-input-help"
                 />
-                <Button onClick={handleChatSubmit} disabled={isEstimating || !currentMessage.trim()}>
+                <Button 
+                  onClick={handleChatSubmit} 
+                  disabled={isEstimating || !currentMessage.trim()}
+                  aria-label="メッセージを送信"
+                >
                   送信
                 </Button>
+              </div>
+              
+              <div id="chat-input-help" className="sr-only">
+                Shift+Enterで改行、Enterで送信します
               </div>
               
               {estimateDetails && (
