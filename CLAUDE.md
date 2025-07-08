@@ -24,6 +24,24 @@ npm run build && npm run start
 npm run build  # Includes TypeScript checking and linting
 ```
 
+### Docker Development
+```bash
+# Build Docker image
+docker compose build
+
+# Run production environment
+docker compose up -d
+
+# Run development environment (with hot reload)
+docker compose --profile dev up -d app-dev
+
+# View logs
+docker compose logs -f
+
+# Stop containers
+docker compose down
+```
+
 ## Architecture Overview
 
 This is a Japanese-language AI-powered task management application built with Next.js 15 App Router. The application combines traditional task management with AI-driven work estimation and automatic weekly schedule generation.

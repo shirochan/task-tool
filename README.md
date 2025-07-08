@@ -38,13 +38,15 @@ AI搭載のタスク管理と週間スケジュール作成ツールです。
 
 ## セットアップ
 
-### 1. 依存関係のインストール
+### 通常の開発環境
+
+#### 1. 依存関係のインストール
 
 ```bash
 npm install
 ```
 
-### 2. 環境変数の設定
+#### 2. 環境変数の設定
 
 `.env.local`ファイルを作成し、以下を設定：
 
@@ -55,13 +57,58 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 
 **注意**: OpenAI APIキーがない場合でも、モック見積もり機能が利用できます。
 
-### 3. 開発サーバーの起動
+#### 3. 開発サーバーの起動
 
 ```bash
 npm run dev
 ```
 
 ブラウザで `http://localhost:3000` を開いてアプリケーションにアクセスできます。
+
+### Docker環境での実行
+
+#### 1. 本番環境での実行
+
+```bash
+# イメージのビルド
+docker compose build
+
+# コンテナの起動
+docker compose up -d
+
+# ログの確認
+docker compose logs -f
+
+# コンテナの停止
+docker compose down
+```
+
+#### 2. 開発環境での実行
+
+```bash
+# 開発モードでの起動（ホットリロード有効）
+docker compose --profile dev up -d app-dev
+
+# ログの確認
+docker compose logs -f app-dev
+
+# コンテナの停止
+docker compose down
+```
+
+#### 3. 環境変数の設定
+
+Docker環境で使用する場合、`.env.local`ファイルを作成してください：
+
+```bash
+# OpenAI API Configuration (オプション)
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+#### 4. データの永続化
+
+- SQLiteデータベースは `./data/tasks.db` に保存されます
+- Dockerコンテナを再起動してもデータは保持されます
 
 ## 使用方法
 
