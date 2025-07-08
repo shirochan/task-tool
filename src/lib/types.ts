@@ -69,6 +69,7 @@ export interface EstimateRequest {
 
 export interface EstimateResponse {
   estimated_hours: number;
+  /** @deprecated use estimated_hours instead */
   hours?: number; // 下位互換性のため
   confidence_score: number;
   reasoning: string;
