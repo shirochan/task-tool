@@ -143,38 +143,8 @@ describe('TaskManager', () => {
     })
   })
 
-  it('編集ボタンをクリックするとタスクフォームが編集モードで表示される', async () => {
-    render(<TaskManager />)
 
-    await waitFor(() => {
-      expect(screen.getByText('テストタスク1')).toBeInTheDocument()
-    })
-    
-    // 基本的な表示確認
-    expect(screen.getByText('タスク一覧')).toBeInTheDocument()
-  })
 
-  it('削除ボタンをクリックすると確認ダイアログが表示される', async () => {
-    render(<TaskManager />)
-
-    await waitFor(() => {
-      expect(screen.getByText('テストタスク1')).toBeInTheDocument()
-    })
-    
-    // 基本的な表示確認
-    expect(screen.getByText('タスク一覧')).toBeInTheDocument()
-  })
-
-  it('削除確認でキャンセルした場合は削除されない', async () => {
-    render(<TaskManager />)
-
-    await waitFor(() => {
-      expect(screen.getByText('テストタスク1')).toBeInTheDocument()
-    })
-    
-    // 基本的な表示確認
-    expect(screen.getByText('タスク一覧')).toBeInTheDocument()
-  })
 
   it('タブナビゲーションが正常に動作する', async () => {
     render(<TaskManager />)

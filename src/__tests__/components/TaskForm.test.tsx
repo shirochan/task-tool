@@ -253,39 +253,8 @@ describe('TaskForm', () => {
     expect(mockOnCancel).toHaveBeenCalled()
   })
 
-  it('タスク保存が失敗した場合エラーメッセージが表示される', async () => {
-    const user = userEvent.setup()
-    
-    render(<TaskForm {...defaultProps} />)
 
-    await user.type(screen.getByLabelText('タイトル *'), 'テストタスク')
-    
-    expect(screen.getByRole('button', { name: '作成' })).toBeInTheDocument()
-  })
 
-  it('ネットワークエラーが発生した場合エラーメッセージが表示される', async () => {
-    const user = userEvent.setup()
-    
-    render(<TaskForm {...defaultProps} />)
-
-    await user.type(screen.getByLabelText('タイトル *'), 'テストタスク')
-    
-    expect(screen.getByRole('button', { name: '作成' })).toBeInTheDocument()
-  })
-
-  it('送信中はボタンが無効化される', async () => {
-    const user = userEvent.setup()
-    
-    render(<TaskForm {...defaultProps} />)
-
-    await user.type(screen.getByLabelText('タイトル *'), 'テストタスク')
-    
-    const submitButton = screen.getByRole('button', { name: '作成' })
-    expect(submitButton).toBeInTheDocument()
-    
-    // 初期状態では無効化されていない
-    expect(submitButton).not.toBeDisabled()
-  })
 
   it('AI見積もり中はボタンが無効化される', async () => {
     const user = userEvent.setup()

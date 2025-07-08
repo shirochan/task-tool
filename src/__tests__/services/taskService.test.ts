@@ -490,4 +490,203 @@ describe('TaskService', () => {
       expect(result).toHaveProperty('2024-01-12')
     })
   })
+
+  describe('スケジュール関連', () => {
+    it('指定日のスケジュールを取得できる', () => {
+      const mockSchedules = [
+        {
+          task_id: 1,
+          day_of_week: 1,
+          start_time: '09:00',
+          end_time: '12:00',
+          scheduled_date: '2024-01-08',
+          title: 'テストタスク',
+          priority: 'must',
+        },
+      ]
+
+      ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
+
+      const result = TaskService.getScheduleByDate('2024-01-08')
+
+      expect(statements.getScheduleByDate.all).toHaveBeenCalledWith('2024-01-08')
+      expect(result).toEqual(mockSchedules)
+    })
+
+    it('週間スケジュールを取得できる', () => {
+      const mockSchedules = [
+        {
+          task_id: 1,
+          day_of_week: 1,
+          start_time: '09:00',
+          end_time: '12:00',
+          scheduled_date: '2024-01-08',
+          title: 'テストタスク1',
+          priority: 'must',
+        },
+        {
+          task_id: 2,
+          day_of_week: 2,
+          start_time: '14:00',
+          end_time: '17:00',
+          scheduled_date: '2024-01-09',
+          title: 'テストタスク2',
+          priority: 'want',
+        },
+      ]
+
+      ;(statements.getWeeklySchedule.all as jest.Mock).mockReturnValue(mockSchedules)
+
+      const result = TaskService.getWeeklySchedule('2024-01-08', '2024-01-12')
+
+      expect(statements.getWeeklySchedule.all).toHaveBeenCalledWith('2024-01-08', '2024-01-12')
+      expect(result).toEqual(mockSchedules)
+    })
+  })
+
+  describe('AI見積もり関連', () => {
+    it('AI見積もりを作成できる', () => {
+      const estimateInput = {
+        task_id: 1,
+        estimated_hours: 3.5,
+        confidence_score: 0.8,
+        reasoning: 'プレゼンテーション資料作成には調査と作成が必要',
+        questions_asked: ['どのような形式の資料ですか？'],
+      }
+
+      const mockEstimate = {
+        id: 1,
+        task_id: 1,
+        estimated_hours: 3.5,
+        confidence_score: 0.8,
+        reasoning: 'プレゼンテーション資料作成には調査と作成が必要',
+        questions_asked: '["どのような形式の資料ですか？"]',
+        created_at: '2024-01-01T00:00:00Z',
+      }
+
+      ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(mockEstimate)
+
+      const result = TaskService.createAIEstimate(estimateInput)
+
+      expect(statements.insertAIEstimate.run).toHaveBeenCalledWith(
+        1,
+        3.5,
+        0.8,
+        'プレゼンテーション資料作成には調査と作成が必要',
+        '["どのような形式の資料ですか？"]'
+      )
+      expect(statements.getLatestEstimate.get).toHaveBeenCalledWith(1)
+      expect(result).toEqual(mockEstimate)
+    })
+
+    it('AI見積もりを取得できる', () => {
+      const mockEstimate = {
+        id: 1,
+        task_id: 1,
+        estimated_hours: 2.5,
+        confidence_score: 0.7,
+        reasoning: 'テスト用の見積もり',
+        questions_asked: null,
+        created_at: '2024-01-01T00:00:00Z',
+      }
+
+      ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(mockEstimate)
+
+      const result = TaskService.getLatestEstimate(1)
+
+      expect(statements.getLatestEstimate.get).toHaveBeenCalledWith(1)
+      expect(result).toEqual(mockEstimate)
+    })
+
+    it('存在しないタスクのAI見積もり取得時はnullが返される', () => {
+      ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(null)
+
+      const result = TaskService.getLatestEstimate(999)
+
+      expect(statements.getLatestEstimate.get).toHaveBeenCalledWith(999)
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('エッジケース', () => {
+    it('空文字列のタイトルでタスクを作成できる', () => {
+      const taskInput: TaskInput = {
+        title: '',
+        priority: 'must',
+      }
+
+      const createdTask: Task = {
+        id: 1,
+        title: '',
+        description: undefined,
+        priority: 'must',
+        category: undefined,
+        estimated_hours: undefined,
+        actual_hours: undefined,
+        status: 'pending',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }
+
+      ;(statements.getTaskById.get as jest.Mock).mockReturnValue(createdTask)
+
+      const result = TaskService.createTask(taskInput)
+
+      expect(result).toEqual(createdTask)
+    })
+
+    it('非常に長いタイトルのタスクを作成できる', () => {
+      const longTitle = 'あ'.repeat(1000)
+      const taskInput: TaskInput = {
+        title: longTitle,
+        priority: 'must',
+      }
+
+      const createdTask: Task = {
+        id: 1,
+        title: longTitle,
+        description: undefined,
+        priority: 'must',
+        category: undefined,
+        estimated_hours: undefined,
+        actual_hours: undefined,
+        status: 'pending',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }
+
+      ;(statements.getTaskById.get as jest.Mock).mockReturnValue(createdTask)
+
+      const result = TaskService.createTask(taskInput)
+
+      expect(result).toEqual(createdTask)
+    })
+
+    it('負の見積もり時間を持つタスクを作成できる', () => {
+      const taskInput: TaskInput = {
+        title: 'テストタスク',
+        priority: 'must',
+        estimated_hours: -1,
+      }
+
+      const createdTask: Task = {
+        id: 1,
+        title: 'テストタスク',
+        description: undefined,
+        priority: 'must',
+        category: undefined,
+        estimated_hours: -1,
+        actual_hours: undefined,
+        status: 'pending',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }
+
+      ;(statements.getTaskById.get as jest.Mock).mockReturnValue(createdTask)
+
+      const result = TaskService.createTask(taskInput)
+
+      expect(result).toEqual(createdTask)
+    })
+  })
 })

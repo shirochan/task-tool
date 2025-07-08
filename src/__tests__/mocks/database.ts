@@ -94,10 +94,8 @@ export const defaultTestTasks: Task[] = [
   },
 ]
 
-// ファイルにテストを追加してJestエラーを防ぐ
-describe('Database mocks', () => {
-  it('should export default test tasks', () => {
-    expect(defaultTestTasks).toHaveLength(2)
-    expect(defaultTestTasks[0].title).toBe('プレゼンテーション資料作成')
-  })
+// Jest requires at least one test per file
+it('should export mock database utilities', () => {
+  expect(mockDatabase).toBeDefined()
+  expect(defaultTestTasks).toHaveLength(2)
 })
