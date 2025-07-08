@@ -74,6 +74,7 @@ describe('AIService', () => {
 
       expect(result).toEqual({
         estimated_hours: 4,
+        hours: 4,
         confidence_score: 0.8,
         reasoning: 'プレゼンテーション資料作成は調査、構成、デザイン、レビューの工程が必要',
         questions: ['どのような形式の資料ですか？', '参考資料はありますか？'],
@@ -138,6 +139,7 @@ describe('AIService', () => {
 
       expect(result).toEqual({
         estimated_hours: 3,
+        hours: 3,
         confidence_score: 0.5,
         reasoning: 'AI推定',
         questions: [],
