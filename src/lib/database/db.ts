@@ -1,0 +1,126 @@
+import Database from 'better-sqlite3';
+import { readFileSync, existsSync, mkdirSync } from 'fs';
+import path from 'path';
+
+// データベースファイルパス
+const dbPath = path.join(process.cwd(), 'data', 'tasks.db');
+
+// SQLiteデータベース接続（遅延初期化）
+let db: Database.Database | null = null;
+
+function getDatabase(): Database.Database {
+  if (!db) {
+    // data ディレクトリが存在しない場合は作成
+    const dataDir = path.dirname(dbPath);
+    if (!existsSync(dataDir)) {
+      mkdirSync(dataDir, { recursive: true });
+    }
+    
+    db = new Database(dbPath);
+    
+    // スキーマファイルを読み込んで実行
+    const schemaPath = path.join(process.cwd(), 'src', 'lib', 'database', 'schema.sql');
+    const schema = readFileSync(schemaPath, 'utf8');
+    
+    // スキーマを実行
+    db.exec(schema);
+    
+    console.log('Database initialized successfully');
+  }
+  
+  return db;
+}
+
+// データベース初期化
+export function initializeDatabase() {
+  getDatabase();
+}
+
+// データベース接続のプリペアドステートメント（遅延初期化）
+export const statements = {
+  get insertTask() {
+    return getDatabase().prepare(`
+      INSERT INTO tasks (title, description, priority, category, estimated_hours)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+  },
+  
+  get getTaskById() {
+    return getDatabase().prepare(`
+      SELECT * FROM tasks WHERE id = ?
+    `);
+  },
+  
+  get getAllTasks() {
+    return getDatabase().prepare(`
+      SELECT * FROM tasks ORDER BY priority DESC, created_at DESC
+    `);
+  },
+  
+  get updateTask() {
+    return getDatabase().prepare(`
+      UPDATE tasks 
+      SET title = ?, description = ?, priority = ?, category = ?, estimated_hours = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+  },
+  
+  get deleteTask() {
+    return getDatabase().prepare(`
+      DELETE FROM tasks WHERE id = ?
+    `);
+  },
+  
+  // スケジュール関連
+  get insertTaskSchedule() {
+    return getDatabase().prepare(`
+      INSERT INTO task_schedules (task_id, day_of_week, start_time, end_time, scheduled_date)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+  },
+  
+  get getScheduleByDate() {
+    return getDatabase().prepare(`
+      SELECT ts.*, t.title, t.description, t.priority, t.estimated_hours
+      FROM task_schedules ts
+      JOIN tasks t ON ts.task_id = t.id
+      WHERE ts.scheduled_date = ?
+      ORDER BY ts.start_time
+    `);
+  },
+  
+  get getWeeklySchedule() {
+    return getDatabase().prepare(`
+      SELECT ts.*, t.title, t.description, t.priority, t.estimated_hours
+      FROM task_schedules ts
+      JOIN tasks t ON ts.task_id = t.id
+      WHERE ts.scheduled_date BETWEEN ? AND ?
+      ORDER BY ts.day_of_week, ts.start_time
+    `);
+  },
+  
+  // AI見積もり関連
+  get insertAIEstimate() {
+    return getDatabase().prepare(`
+      INSERT INTO ai_estimates (task_id, estimated_hours, confidence_score, reasoning, questions_asked)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+  },
+  
+  get getLatestEstimate() {
+    return getDatabase().prepare(`
+      SELECT * FROM ai_estimates 
+      WHERE task_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `);
+  }
+};
+
+// データベース接続終了
+export function closeDatabase() {
+  if (db) {
+    db.close();
+    db = null;
+  }
+}
