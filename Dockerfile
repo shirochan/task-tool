@@ -9,7 +9,7 @@ WORKDIR /app
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
-# 依存関係のインストール
+# 依存関係のインストール（ビルド用にdevDependenciesも含む）
 RUN npm ci
 
 # アプリケーションのソースコードをコピー
@@ -20,6 +20,9 @@ RUN mkdir -p data
 
 # Next.jsのビルド
 RUN npm run build
+
+# 本番環境用の依存関係のみ再インストール
+RUN npm ci --omit=dev && npm cache clean --force
 
 # 非rootユーザーの作成
 RUN addgroup -g 1001 -S nodejs
