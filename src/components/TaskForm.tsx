@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Bot, User, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import { Task } from '@/lib/types';
 
 const taskSchema = z.object({
@@ -149,7 +150,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     }
     
     setActiveTab('form');
-    alert('AI見積もりをフォームに反映しました');
+    toast.success('AI見積もりをフォームに反映しました');
   };
 
   const onSubmit = async (data: TaskFormData) => {
