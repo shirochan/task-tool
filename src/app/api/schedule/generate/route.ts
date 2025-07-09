@@ -96,8 +96,18 @@ function generateWeeklySchedule(tasks: Task[]) {
 }
 
 async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
+  // Get current week date range
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
+  
+  const startDate = monday.toISOString().split('T')[0];
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  const endDate = friday.toISOString().split('T')[0];
+  
   // Clear existing schedule for the current week
-  // TODO: Implement proper schedule clearing
+  TaskService.clearWeeklySchedule(startDate, endDate);
   
   // Save new schedule
   for (const [date, tasks] of Object.entries(schedule)) {
