@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TaskService } from '@/lib/services/taskService';
 import { Task } from '@/lib/types';
+import { getISOWeekStart, getISOWeekDates } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,18 +38,10 @@ function generateWeeklySchedule(tasks: Task[]) {
   const schedule: { [key: string]: Task[] } = {};
   
   // Get current week dates (Monday to Friday)
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1);
-  
-  const weekDates: string[] = [];
-  for (let i = 0; i < 5; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
-    weekDates.push(dateStr);
+  const weekDates = getISOWeekDates();
+  weekDates.forEach(dateStr => {
     schedule[dateStr] = [];
-  }
+  });
 
   // Sort tasks by priority (must first) and estimated hours
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -96,10 +89,16 @@ function generateWeeklySchedule(tasks: Task[]) {
 }
 
 async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
-  // Clear existing schedule for the current week
-  // TODO: Implement proper schedule clearing
+  // Get current week date range
+  const monday = getISOWeekStart();
+  const startDate = monday.toISOString().split('T')[0];
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  const endDate = friday.toISOString().split('T')[0];
   
-  // Save new schedule
+  // Prepare schedule data for atomic transaction
+  const scheduleData: Array<{ taskId: number; dayOfWeek: number; startTime: string; endTime: string; scheduledDate: string }> = [];
+  
   for (const [date, tasks] of Object.entries(schedule)) {
     const dayOfWeek = new Date(date).getDay();
     const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday from 0 to 7
@@ -113,16 +112,24 @@ async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
         const endHour = currentTime + estimatedHours;
         const endTime = `${Math.floor(endHour).toString().padStart(2, '0')}:${((endHour % 1) * 60).toString().padStart(2, '0')}`;
         
-        TaskService.createTaskSchedule(
-          task.id,
-          adjustedDay,
+        scheduleData.push({
+          taskId: task.id,
+          dayOfWeek: adjustedDay,
           startTime,
           endTime,
-          date
-        );
+          scheduledDate: date
+        });
         
         currentTime = endHour;
       }
     }
+  }
+  
+  // Atomically clear old schedules and insert new ones
+  try {
+    TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData);
+  } catch (error) {
+    console.error('Database transaction failed:', error);
+    throw new Error('スケジュールの保存に失敗しました');
   }
 }

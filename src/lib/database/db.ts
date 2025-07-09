@@ -114,8 +114,23 @@ export const statements = {
       ORDER BY created_at DESC 
       LIMIT 1
     `);
+  },
+
+  // 週間スケジュールクリア
+  get clearWeeklySchedule() {
+    return getDatabase().prepare(`
+      DELETE FROM task_schedules 
+      WHERE scheduled_date BETWEEN ? AND ?
+    `);
   }
 };
+
+// トランザクション処理
+export function runTransaction<T>(callback: (db: Database.Database) => T): T {
+  const database = getDatabase();
+  const transaction = database.transaction(callback);
+  return transaction(database);
+}
 
 // データベース接続終了
 export function closeDatabase() {
