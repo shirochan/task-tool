@@ -871,8 +871,8 @@ describe('TaskService', () => {
       expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
         taskId,
         2, // 火曜日
-        '09:00', // デフォルト時間
-        '10:30', // 1.5時間後
+        '10:00', // デフォルト時間
+        '11:30', // 1.5時間後
         targetDate
       )
       expect(result).toBe(true)
@@ -923,8 +923,8 @@ describe('TaskService', () => {
       expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
         taskId,
         1, // 月曜日
-        '09:00',
-        '10:00', // デフォルト1時間
+        '10:00',
+        '11:00', // デフォルト1時間
         targetDate
       )
       expect(result).toBe(true)

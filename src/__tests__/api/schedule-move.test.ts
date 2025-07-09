@@ -100,8 +100,8 @@ describe('/api/schedule/move', () => {
       expect(data.message).toBe('タスクが正常に移動されました')
       expect(TaskService.checkTimeConflicts).toHaveBeenCalledWith(
         '2024-01-08',
-        '09:00', // デフォルト時間
-        '10:00', // 1時間後
+        '10:00', // デフォルト時間
+        '11:00', // 1時間後
         1
       )
       expect(TaskService.moveTaskToDate).toHaveBeenCalledWith(1, '2024-01-08', undefined)

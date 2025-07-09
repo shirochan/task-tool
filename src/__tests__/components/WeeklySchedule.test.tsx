@@ -46,8 +46,8 @@ describe('WeeklySchedule', () => {
       {
         task_id: 1,
         day_of_week: 1,
-        start_time: '09:00',
-        end_time: '13:00',
+        start_time: '10:00',
+        end_time: '14:00',
         scheduled_date: '2024-01-08',
         title: 'プレゼンテーション資料作成',
         description: '来週の会議用プレゼンテーション資料を作成する',
@@ -152,7 +152,7 @@ describe('WeeklySchedule', () => {
 
       // スケジュール済みタスクの表示
       expect(screen.getByText('プレゼンテーション資料作成')).toBeInTheDocument()
-      expect(screen.getByText('09:00 - 13:00')).toBeInTheDocument()
+      expect(screen.getByText('10:00 - 14:00')).toBeInTheDocument()
 
       // 各日の予定時間
       expect(screen.getByText('4.0時間')).toBeInTheDocument()
