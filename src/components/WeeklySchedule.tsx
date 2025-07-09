@@ -12,7 +12,7 @@ import {
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
-  closestCenter,
+  pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
@@ -21,6 +21,7 @@ import {
   useDraggable,
   useDroppable,
 } from '@dnd-kit/core';
+import { snapCenterToCursor } from '@dnd-kit/modifiers';
 
 interface WeeklyScheduleProps {
   tasks: Task[];
@@ -312,7 +313,7 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 3,
       },
     })
   );
@@ -480,7 +481,7 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -568,10 +569,10 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
       </div>
       
       {/* ドラッグオーバーレイ */}
-      <DragOverlay>
+      <DragOverlay modifiers={[snapCenterToCursor]}>
         {activeId && draggedTask ? (
-          <div className="p-3 bg-white rounded-lg border shadow-lg">
-            <div className="font-medium text-sm mb-1">
+          <div className="p-3 bg-white rounded-lg border shadow-lg max-w-64">
+            <div className="font-medium text-sm mb-1 truncate">
               {draggedTask.title}
             </div>
             <div className="flex items-center justify-between">

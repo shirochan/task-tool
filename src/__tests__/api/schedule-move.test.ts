@@ -345,7 +345,6 @@ describe('/api/schedule/move', () => {
       })
 
       const response = await PUT(request)
-      const data = await response.json()
 
       expect(response.status).toBe(200)
       expect(TaskService.checkTimeConflicts).toHaveBeenCalledWith(
