@@ -4,7 +4,7 @@
 
 import { TaskService } from '@/lib/services/taskService'
 import { Task, TaskInput, TaskScheduleWithTask, AIEstimateInput } from '@/lib/types'
-import { statements } from '@/lib/database/db'
+import { statements, runTransaction } from '@/lib/database/db'
 
 // データベースのモック
 jest.mock('@/lib/database/db', () => ({
@@ -19,7 +19,9 @@ jest.mock('@/lib/database/db', () => ({
     getWeeklySchedule: { all: jest.fn() },
     insertAIEstimate: { run: jest.fn() },
     getLatestEstimate: { get: jest.fn() },
+    clearWeeklySchedule: { run: jest.fn() },
   },
+  runTransaction: jest.fn(),
 }))
 
 describe('TaskService', () => {
@@ -687,6 +689,116 @@ describe('TaskService', () => {
       const result = TaskService.createTask(taskInput)
 
       expect(result).toEqual(createdTask)
+    })
+  })
+
+  describe('clearWeeklySchedule', () => {
+    it('指定した日付範囲のスケジュールをクリアできる', () => {
+      const startDate = '2024-01-08'
+      const endDate = '2024-01-12'
+
+      TaskService.clearWeeklySchedule(startDate, endDate)
+
+      expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(startDate, endDate)
+    })
+
+    it('同じ日付でのクリアも実行できる', () => {
+      const date = '2024-01-08'
+
+      TaskService.clearWeeklySchedule(date, date)
+
+      expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(date, date)
+    })
+  })
+
+  describe('updateWeeklyScheduleAtomically', () => {
+    it('トランザクション内でスケジュールを原子的に更新できる', () => {
+      const startDate = '2024-01-08'
+      const endDate = '2024-01-12'
+      const scheduleData = [
+        {
+          taskId: 1,
+          dayOfWeek: 1,
+          startTime: '09:00',
+          endTime: '11:00',
+          scheduledDate: '2024-01-08'
+        },
+        {
+          taskId: 2,
+          dayOfWeek: 2,
+          startTime: '14:00',
+          endTime: '16:00',
+          scheduledDate: '2024-01-09'
+        }
+      ]
+
+      // runTransactionをモックして、渡されたコールバック関数を実行
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
+
+      expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
+      expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(startDate, endDate)
+      expect(statements.insertTaskSchedule.run).toHaveBeenCalledTimes(2)
+      expect(statements.insertTaskSchedule.run).toHaveBeenNthCalledWith(
+        1,
+        1,
+        1,
+        '09:00',
+        '11:00',
+        '2024-01-08'
+      )
+      expect(statements.insertTaskSchedule.run).toHaveBeenNthCalledWith(
+        2,
+        2,
+        2,
+        '14:00',
+        '16:00',
+        '2024-01-09'
+      )
+    })
+
+    it('空のスケジュールデータでもクリア処理は実行される', () => {
+      const startDate = '2024-01-08'
+      const endDate = '2024-01-12'
+      const scheduleData: Array<{ taskId: number; dayOfWeek: number; startTime: string; endTime: string; scheduledDate: string }> = []
+
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
+
+      expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
+      expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(startDate, endDate)
+      expect(statements.insertTaskSchedule.run).not.toHaveBeenCalled()
+    })
+
+    it('トランザクションエラーが発生した場合の動作確認', () => {
+      const startDate = '2024-01-08'
+      const endDate = '2024-01-12'
+      const scheduleData = [
+        {
+          taskId: 1,
+          dayOfWeek: 1,
+          startTime: '09:00',
+          endTime: '11:00',
+          scheduledDate: '2024-01-08'
+        }
+      ]
+
+      // runTransactionでエラーを発生させる
+      ;(runTransaction as jest.Mock).mockImplementation(() => {
+        throw new Error('Database transaction failed')
+      })
+
+      expect(() => {
+        TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
+      }).toThrow('Database transaction failed')
+
+      expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
     })
   })
 })
