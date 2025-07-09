@@ -114,6 +114,14 @@ export const statements = {
       ORDER BY created_at DESC 
       LIMIT 1
     `);
+  },
+
+  // 週間スケジュールクリア
+  get clearWeeklySchedule() {
+    return getDatabase().prepare(`
+      DELETE FROM task_schedules 
+      WHERE scheduled_date BETWEEN ? AND ?
+    `);
   }
 };
 

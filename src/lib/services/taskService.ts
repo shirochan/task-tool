@@ -74,6 +74,11 @@ export class TaskService {
     return statements.getLatestEstimate.get(taskId) as AIEstimate | null;
   }
 
+  // 週間スケジュールクリア
+  static clearWeeklySchedule(startDate: string, endDate: string): void {
+    statements.clearWeeklySchedule.run(startDate, endDate);
+  }
+
   // 週間スケジュール生成用のヘルパー関数
   static generateWeeklySchedule(): { [key: string]: TaskScheduleWithTask[] } {
     // 現在の週の月曜日から金曜日までの日付を取得
