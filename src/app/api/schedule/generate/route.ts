@@ -104,7 +104,7 @@ async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
     const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday from 0 to 7
     
     if (adjustedDay >= 1 && adjustedDay <= 5) { // Monday to Friday
-      let currentTime = 9; // Start at 9 AM
+      let currentTime = 10; // Start at 10 AM
       
       for (const task of tasks) {
         const estimatedHours = task.estimated_hours || 2;
