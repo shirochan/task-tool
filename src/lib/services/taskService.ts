@@ -116,4 +116,74 @@ export class TaskService {
 
     return weeklySchedule;
   }
+
+  // ドラッグ＆ドロップ用のタスク移動
+  static moveTaskToDate(taskId: number, targetDate: string, targetTime?: string): boolean {
+    return runTransaction(() => {
+      // 既存のスケジュールを削除
+      statements.deleteTaskSchedule.run(taskId);
+      
+      // 新しい日付でスケジュールを作成
+      const dayOfWeek = new Date(targetDate).getDay();
+      // 日曜日(0)を7に変換し、月曜日(1)から金曜日(5)のみ許可
+      const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+      
+      if (adjustedDayOfWeek >= 1 && adjustedDayOfWeek <= 5) {
+        const startTime = targetTime || '09:00';
+        const task = this.getTaskById(taskId);
+        const estimatedHours = task?.estimated_hours || 1;
+        
+        // 終了時間を計算
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const endHour = startHour + Math.floor(estimatedHours);
+        const endMinute = startMinute + ((estimatedHours % 1) * 60);
+        const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+        
+        statements.insertTaskSchedule.run(
+          taskId,
+          adjustedDayOfWeek,
+          startTime,
+          endTime,
+          targetDate
+        );
+        return true;
+      }
+      return false;
+    });
+  }
+
+  // 個別スケジュールの更新
+  static updateTaskSchedule(scheduleId: number, updates: {
+    start_time?: string;
+    end_time?: string;
+    scheduled_date?: string;
+  }): boolean {
+    return runTransaction(() => {
+      const result = statements.updateTaskSchedule.run(
+        updates.start_time,
+        updates.end_time,
+        updates.scheduled_date,
+        scheduleId
+      );
+      return result.changes > 0;
+    });
+  }
+
+  // 時間競合チェック
+  static checkTimeConflicts(date: string, startTime: string, endTime: string, excludeTaskId?: number): boolean {
+    const schedules = this.getScheduleByDate(date);
+    
+    for (const schedule of schedules) {
+      if (excludeTaskId && schedule.task_id === excludeTaskId) continue;
+      
+      const existingStart = schedule.start_time;
+      const existingEnd = schedule.end_time;
+      
+      // 時間の重複チェック（時間が設定されている場合のみ）
+      if (existingStart && existingEnd && startTime < existingEnd && endTime > existingStart) {
+        return true; // 競合あり
+      }
+    }
+    return false; // 競合なし
+  }
 }

@@ -122,6 +122,25 @@ export const statements = {
       DELETE FROM task_schedules 
       WHERE scheduled_date BETWEEN ? AND ?
     `);
+  },
+
+  // 個別タスクのスケジュール削除
+  get deleteTaskSchedule() {
+    return getDatabase().prepare(`
+      DELETE FROM task_schedules 
+      WHERE task_id = ?
+    `);
+  },
+
+  // 個別スケジュールの更新
+  get updateTaskSchedule() {
+    return getDatabase().prepare(`
+      UPDATE task_schedules 
+      SET start_time = COALESCE(?, start_time),
+          end_time = COALESCE(?, end_time),
+          scheduled_date = COALESCE(?, scheduled_date)
+      WHERE id = ?
+    `);
   }
 };
 
