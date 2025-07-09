@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, RefreshCw } from 'lucide-react';
 import { Task, TaskScheduleWithTask, DAYS_OF_WEEK } from '@/lib/types';
+import { getISOWeekDates } from '@/lib/utils';
 
 interface WeeklyScheduleProps {
   tasks: Task[];
@@ -23,19 +24,8 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
   }, []);
 
   const generateCurrentWeek = () => {
-    const today = new Date();
-    const monday = new Date(today);
-    // ISO週の開始日計算: 日曜日(0)を正しく前の週として扱う
-    const dayOfWeek = (today.getDay() + 6) % 7;
-    monday.setDate(today.getDate() - dayOfWeek);
-    
-    const week: string[] = [];
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      week.push(date.toISOString().split('T')[0]);
-    }
-    setCurrentWeek(week);
+    const weekDates = getISOWeekDates();
+    setCurrentWeek(weekDates);
   };
 
   const fetchWeeklySchedule = async () => {
