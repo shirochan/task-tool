@@ -20,6 +20,8 @@ jest.mock('@/lib/database/db', () => ({
     insertAIEstimate: { run: jest.fn() },
     getLatestEstimate: { get: jest.fn() },
     clearWeeklySchedule: { run: jest.fn() },
+    deleteTaskSchedule: { run: jest.fn() },
+    updateTaskSchedule: { run: jest.fn() },
   },
   runTransaction: jest.fn(),
 }))
@@ -799,6 +801,350 @@ describe('TaskService', () => {
       }).toThrow('Database transaction failed')
 
       expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
+    })
+  })
+
+  // 新しく追加したドラッグ&ドロップ機能のテスト
+  describe('moveTaskToDate', () => {
+    it('タスクを指定した日付に移動できる', () => {
+      const taskId = 1
+      const targetDate = '2024-01-08' // 月曜日
+      const targetTime = '10:00'
+      
+      const mockTask: Task = {
+        id: 1,
+        title: 'テストタスク',
+        description: 'テスト用のタスク',
+        priority: 'must',
+        category: 'テスト',
+        estimated_hours: 2,
+        actual_hours: undefined,
+        status: 'pending',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }
+
+      ;(statements.getTaskById.get as jest.Mock).mockReturnValue(mockTask)
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.moveTaskToDate(taskId, targetDate, targetTime)
+
+      expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
+      expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
+      expect(statements.getTaskById.get).toHaveBeenCalledWith(taskId)
+      expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
+        taskId,
+        1, // 月曜日
+        '10:00',
+        '12:00', // 2時間後
+        targetDate
+      )
+      expect(result).toBe(true)
+    })
+
+    it('タスクを指定した日付に移動できる（時間指定なし）', () => {
+      const taskId = 1
+      const targetDate = '2024-01-09' // 火曜日
+      
+      const mockTask: Task = {
+        id: 1,
+        title: 'テストタスク',
+        description: 'テスト用のタスク',
+        priority: 'must',
+        category: 'テスト',
+        estimated_hours: 1.5,
+        actual_hours: undefined,
+        status: 'pending',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }
+
+      ;(statements.getTaskById.get as jest.Mock).mockReturnValue(mockTask)
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.moveTaskToDate(taskId, targetDate)
+
+      expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
+        taskId,
+        2, // 火曜日
+        '09:00', // デフォルト時間
+        '10:30', // 1.5時間後
+        targetDate
+      )
+      expect(result).toBe(true)
+    })
+
+    it('土曜日への移動は失敗する', () => {
+      const taskId = 1
+      const targetDate = '2024-01-13' // 土曜日
+      
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.moveTaskToDate(taskId, targetDate)
+
+      expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
+      expect(statements.insertTaskSchedule.run).not.toHaveBeenCalled()
+      expect(result).toBe(false)
+    })
+
+    it('日曜日への移動は失敗する', () => {
+      const taskId = 1
+      const targetDate = '2024-01-14' // 日曜日
+      
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.moveTaskToDate(taskId, targetDate)
+
+      expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
+      expect(statements.insertTaskSchedule.run).not.toHaveBeenCalled()
+      expect(result).toBe(false)
+    })
+
+    it('存在しないタスクでもスケジュール削除は実行される', () => {
+      const taskId = 999
+      const targetDate = '2024-01-08' // 月曜日
+      
+      ;(statements.getTaskById.get as jest.Mock).mockReturnValue(null)
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.moveTaskToDate(taskId, targetDate)
+
+      expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
+      expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
+        taskId,
+        1, // 月曜日
+        '09:00',
+        '10:00', // デフォルト1時間
+        targetDate
+      )
+      expect(result).toBe(true)
+    })
+  })
+
+  describe('updateTaskSchedule', () => {
+    it('スケジュールを更新できる', () => {
+      const scheduleId = 1
+      const updates = {
+        start_time: '14:00',
+        end_time: '16:00',
+        scheduled_date: '2024-01-09'
+      }
+      
+      const mockResult = { changes: 1 }
+      ;(statements.updateTaskSchedule.run as jest.Mock).mockReturnValue(mockResult)
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.updateTaskSchedule(scheduleId, updates)
+
+      expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
+      expect(statements.updateTaskSchedule.run).toHaveBeenCalledWith(
+        '14:00',
+        '16:00',
+        '2024-01-09',
+        scheduleId
+      )
+      expect(result).toBe(true)
+    })
+
+    it('部分的なスケジュール更新ができる', () => {
+      const scheduleId = 1
+      const updates = {
+        start_time: '10:00'
+      }
+      
+      const mockResult = { changes: 1 }
+      ;(statements.updateTaskSchedule.run as jest.Mock).mockReturnValue(mockResult)
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.updateTaskSchedule(scheduleId, updates)
+
+      expect(statements.updateTaskSchedule.run).toHaveBeenCalledWith(
+        '10:00',
+        undefined,
+        undefined,
+        scheduleId
+      )
+      expect(result).toBe(true)
+    })
+
+    it('存在しないスケジュールの更新は失敗する', () => {
+      const scheduleId = 999
+      const updates = {
+        start_time: '10:00'
+      }
+      
+      const mockResult = { changes: 0 }
+      ;(statements.updateTaskSchedule.run as jest.Mock).mockReturnValue(mockResult)
+      ;(runTransaction as jest.Mock).mockImplementation((callback) => {
+        return callback()
+      })
+
+      const result = TaskService.updateTaskSchedule(scheduleId, updates)
+
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('checkTimeConflicts', () => {
+    it('時間競合がない場合はfalseを返す', () => {
+      const date = '2024-01-08'
+      const startTime = '14:00'
+      const endTime = '16:00'
+      
+      const mockSchedules: TaskScheduleWithTask[] = [
+        {
+          id: 1,
+          task_id: 1,
+          day_of_week: 1,
+          start_time: '09:00',
+          end_time: '11:00',
+          scheduled_date: '2024-01-08',
+          title: 'タスク1',
+          priority: 'must',
+          created_at: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: 2,
+          task_id: 2,
+          day_of_week: 1,
+          start_time: '17:00',
+          end_time: '18:00',
+          scheduled_date: '2024-01-08',
+          title: 'タスク2',
+          priority: 'want',
+          created_at: '2024-01-01T00:00:00Z',
+        }
+      ]
+      
+      ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
+
+      const result = TaskService.checkTimeConflicts(date, startTime, endTime)
+
+      expect(statements.getScheduleByDate.all).toHaveBeenCalledWith(date)
+      expect(result).toBe(false)
+    })
+
+    it('時間競合がある場合はtrueを返す', () => {
+      const date = '2024-01-08'
+      const startTime = '10:00'
+      const endTime = '12:00'
+      
+      const mockSchedules: TaskScheduleWithTask[] = [
+        {
+          id: 1,
+          task_id: 1,
+          day_of_week: 1,
+          start_time: '09:00',
+          end_time: '11:00',
+          scheduled_date: '2024-01-08',
+          title: 'タスク1',
+          priority: 'must',
+          created_at: '2024-01-01T00:00:00Z',
+        }
+      ]
+      
+      ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
+
+      const result = TaskService.checkTimeConflicts(date, startTime, endTime)
+
+      expect(result).toBe(true)
+    })
+
+    it('除外タスクIDが指定された場合、そのタスクは競合チェックから除外される', () => {
+      const date = '2024-01-08'
+      const startTime = '10:00'
+      const endTime = '12:00'
+      const excludeTaskId = 1
+      
+      const mockSchedules: TaskScheduleWithTask[] = [
+        {
+          id: 1,
+          task_id: 1,
+          day_of_week: 1,
+          start_time: '09:00',
+          end_time: '11:00',
+          scheduled_date: '2024-01-08',
+          title: 'タスク1',
+          priority: 'must',
+          created_at: '2024-01-01T00:00:00Z',
+        }
+      ]
+      
+      ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
+
+      const result = TaskService.checkTimeConflicts(date, startTime, endTime, excludeTaskId)
+
+      expect(result).toBe(false)
+    })
+
+    it('時間が設定されていないスケジュールは競合チェックから除外される', () => {
+      const date = '2024-01-08'
+      const startTime = '10:00'
+      const endTime = '12:00'
+      
+      const mockSchedules: TaskScheduleWithTask[] = [
+        {
+          id: 1,
+          task_id: 1,
+          day_of_week: 1,
+          start_time: null,
+          end_time: null,
+          scheduled_date: '2024-01-08',
+          title: 'タスク1',
+          priority: 'must',
+          created_at: '2024-01-01T00:00:00Z',
+        }
+      ]
+      
+      ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
+
+      const result = TaskService.checkTimeConflicts(date, startTime, endTime)
+
+      expect(result).toBe(false)
+    })
+
+    it('境界値での時間競合チェック', () => {
+      const date = '2024-01-08'
+      
+      const mockSchedules: TaskScheduleWithTask[] = [
+        {
+          id: 1,
+          task_id: 1,
+          day_of_week: 1,
+          start_time: '09:00',
+          end_time: '11:00',
+          scheduled_date: '2024-01-08',
+          title: 'タスク1',
+          priority: 'must',
+          created_at: '2024-01-01T00:00:00Z',
+        }
+      ]
+      
+      ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
+
+      // 直前の時間帯（競合なし）
+      expect(TaskService.checkTimeConflicts(date, '08:00', '09:00')).toBe(false)
+      
+      // 直後の時間帯（競合なし）
+      expect(TaskService.checkTimeConflicts(date, '11:00', '12:00')).toBe(false)
+      
+      // 1分だけ重複（競合あり）
+      expect(TaskService.checkTimeConflicts(date, '08:59', '09:01')).toBe(true)
+      expect(TaskService.checkTimeConflicts(date, '10:59', '11:01')).toBe(true)
     })
   })
 })
