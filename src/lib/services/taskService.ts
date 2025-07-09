@@ -129,7 +129,7 @@ export class TaskService {
       const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
       
       if (adjustedDayOfWeek >= 1 && adjustedDayOfWeek <= 5) {
-        const startTime = targetTime || '09:00';
+        const startTime = targetTime || '10:00';
         const task = this.getTaskById(taskId);
         const estimatedHours = task?.estimated_hours || 1;
         

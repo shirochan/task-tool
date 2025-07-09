@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 時間競合チェック
-    const startTime = targetTime || '09:00';
+    const startTime = targetTime || '10:00';
     const estimatedHours = task.estimated_hours || 1;
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const endHour = startHour + Math.floor(estimatedHours);

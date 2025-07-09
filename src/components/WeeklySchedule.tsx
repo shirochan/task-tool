@@ -175,9 +175,9 @@ interface DroppableDayProps {
 }
 
 function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activeId }: DroppableDayProps) {
-  // 1時間単位の時間スロットを生成（9:00-18:00）
-  const timeSlots = Array.from({ length: 9 }, (_, i) => {
-    const hour = 9 + i;
+  // 1時間単位の時間スロットを生成（10:00-19:00）
+  const timeSlots = Array.from({ length: 10 }, (_, i) => {
+    const hour = 10 + i;
     return `${hour.toString().padStart(2, '0')}:00`;
   });
 
