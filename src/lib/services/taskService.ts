@@ -1,5 +1,6 @@
-import { statements } from '../database/db';
+import { statements, runTransaction } from '../database/db';
 import { Task, TaskInput, TaskScheduleWithTask, AIEstimate, AIEstimateInput } from '../types';
+import { getISOWeekDates } from '../utils';
 
 export class TaskService {
   // タスク管理
@@ -74,18 +75,38 @@ export class TaskService {
     return statements.getLatestEstimate.get(taskId) as AIEstimate | null;
   }
 
+  // 週間スケジュールクリア
+  static clearWeeklySchedule(startDate: string, endDate: string): void {
+    statements.clearWeeklySchedule.run(startDate, endDate);
+  }
+
+  // トランザクション内でスケジュールを更新（原子性を保証）
+  static updateWeeklyScheduleAtomically(
+    startDate: string,
+    endDate: string,
+    scheduleData: Array<{ taskId: number; dayOfWeek: number; startTime: string; endTime: string; scheduledDate: string }>
+  ): void {
+    runTransaction(() => {
+      // 既存スケジュールをクリア
+      statements.clearWeeklySchedule.run(startDate, endDate);
+      
+      // 新しいスケジュールを追加
+      for (const schedule of scheduleData) {
+        statements.insertTaskSchedule.run(
+          schedule.taskId,
+          schedule.dayOfWeek,
+          schedule.startTime,
+          schedule.endTime,
+          schedule.scheduledDate
+        );
+      }
+    });
+  }
+
   // 週間スケジュール生成用のヘルパー関数
   static generateWeeklySchedule(): { [key: string]: TaskScheduleWithTask[] } {
     // 現在の週の月曜日から金曜日までの日付を取得
-    const today = new Date();
-    const monday = new Date(today.setDate(today.getDate() - today.getDay() + 1));
-    
-    const weekDates: string[] = [];
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      weekDates.push(date.toISOString().split('T')[0]);
-    }
+    const weekDates = getISOWeekDates();
 
     // 各日のスケジュールを取得
     const weeklySchedule: { [key: string]: TaskScheduleWithTask[] } = {};
