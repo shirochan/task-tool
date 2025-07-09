@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -185,6 +185,20 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
     return `${i.toString().padStart(2, '0')}:00`;
   });
 
+  // スクロール位置を10時に設定するためのref
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      // 10時の位置にスクロール
+      const tenOClockIndex = 10;
+      const slotHeight = 48; // min-h-12 (3rem = 48px)
+      const padding = 4; // space-y-1
+      const scrollTop = tenOClockIndex * (slotHeight + padding);
+      scrollRef.current.scrollTop = scrollTop;
+    }
+  }, []);
+
   // 営業時間帯（10:00-19:00）かどうかを判定
   const isBusinessHour = (time: string) => {
     const hour = parseInt(time.split(':')[0]);
@@ -219,7 +233,7 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
   };
 
   return (
-    <Card className="h-96 flex flex-col">
+    <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="text-sm">
           {getDateLabel(date)}
@@ -228,7 +242,7 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
           {getTotalHours(date).toFixed(1)}時間
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto space-y-1">
+      <CardContent ref={scrollRef} className="flex-1 overflow-y-auto space-y-1" style={{ scrollBehavior: 'smooth' }}>
         {timeSlots.map((time) => {
           const slotTasks = getTasksForTimeSlot(time);
           const isOccupied = slotTasks.length > 0;
