@@ -140,9 +140,10 @@ interface DroppableTimeSlotProps {
   time: string;
   children: React.ReactNode;
   isOccupied: boolean;
+  isBusinessHour: boolean;
 }
 
-function DroppableTimeSlot({ date, time, children, isOccupied }: DroppableTimeSlotProps) {
+function DroppableTimeSlot({ date, time, children, isOccupied, isBusinessHour }: DroppableTimeSlotProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: `slot-${date}-${time}`,
     data: { date, time },
@@ -156,10 +157,14 @@ function DroppableTimeSlot({ date, time, children, isOccupied }: DroppableTimeSl
           ? 'border-blue-500 bg-blue-50' 
           : isOccupied 
           ? 'border-gray-200 bg-gray-50' 
-          : 'border-gray-300 hover:border-gray-400'
+          : isBusinessHour
+          ? 'border-gray-300 hover:border-gray-400 bg-white'
+          : 'border-gray-200 hover:border-gray-300 bg-gray-50'
       }`}
     >
-      <div className="text-xs text-gray-500 mb-1">{time}</div>
+      <div className={`text-xs mb-1 ${isBusinessHour ? 'text-gray-500' : 'text-gray-400'}`}>
+        {time}
+      </div>
       {children}
     </div>
   );
@@ -175,11 +180,16 @@ interface DroppableDayProps {
 }
 
 function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activeId }: DroppableDayProps) {
-  // 1時間単位の時間スロットを生成（10:00-19:00）
-  const timeSlots = Array.from({ length: 10 }, (_, i) => {
-    const hour = 10 + i;
-    return `${hour.toString().padStart(2, '0')}:00`;
+  // 1時間単位の時間スロットを生成（0:00-23:00）
+  const timeSlots = Array.from({ length: 24 }, (_, i) => {
+    return `${i.toString().padStart(2, '0')}:00`;
   });
+
+  // 営業時間帯（10:00-19:00）かどうかを判定
+  const isBusinessHour = (time: string) => {
+    const hour = parseInt(time.split(':')[0]);
+    return hour >= 10 && hour < 19;
+  };
 
   // 各時間スロットのタスクを取得
   const getTasksForTimeSlot = (time: string) => {
@@ -209,8 +219,8 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
   };
 
   return (
-    <Card className="min-h-96">
-      <CardHeader className="pb-3">
+    <Card className="h-96 flex flex-col">
+      <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="text-sm">
           {getDateLabel(date)}
         </CardTitle>
@@ -218,7 +228,7 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
           {getTotalHours(date).toFixed(1)}時間
         </div>
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className="flex-1 overflow-y-auto space-y-1">
         {timeSlots.map((time) => {
           const slotTasks = getTasksForTimeSlot(time);
           const isOccupied = slotTasks.length > 0;
@@ -229,6 +239,7 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
               date={date}
               time={time}
               isOccupied={isOccupied}
+              isBusinessHour={isBusinessHour(time)}
             >
               {slotTasks.map((task) => (
                 <DraggableTask
