@@ -55,8 +55,11 @@ export async function PUT(request: NextRequest) {
     const startTime = targetTime || '10:00';
     const estimatedHours = task.estimated_hours || 1;
     const [startHour, startMinute] = startTime.split(':').map(Number);
-    const endHour = startHour + Math.floor(estimatedHours);
-    const endMinute = startMinute + ((estimatedHours % 1) * 60);
+    
+    // 終了時間の計算（分のオーバーフロー処理）
+    const totalMinutes = startMinute + ((estimatedHours % 1) * 60);
+    const endHour = startHour + Math.floor(estimatedHours) + Math.floor(totalMinutes / 60);
+    const endMinute = Math.round(totalMinutes % 60);
     const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
 
     // 時間競合チェック
