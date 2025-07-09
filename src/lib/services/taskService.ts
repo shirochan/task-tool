@@ -133,10 +133,11 @@ export class TaskService {
         const task = this.getTaskById(taskId);
         const estimatedHours = task?.estimated_hours || 1;
         
-        // 終了時間を計算
+        // 終了時間を計算（分のオーバーフロー処理）
         const [startHour, startMinute] = startTime.split(':').map(Number);
-        const endHour = startHour + Math.floor(estimatedHours);
-        const endMinute = startMinute + ((estimatedHours % 1) * 60);
+        const totalMinutes = startMinute + ((estimatedHours % 1) * 60);
+        const endHour = startHour + Math.floor(estimatedHours) + Math.floor(totalMinutes / 60);
+        const endMinute = Math.round(totalMinutes % 60);
         const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
         
         statements.insertTaskSchedule.run(
