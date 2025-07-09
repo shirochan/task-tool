@@ -1,4 +1,4 @@
-import { statements } from '../database/db';
+import { statements, runTransaction } from '../database/db';
 import { Task, TaskInput, TaskScheduleWithTask, AIEstimate, AIEstimateInput } from '../types';
 
 export class TaskService {
@@ -77,6 +77,29 @@ export class TaskService {
   // 週間スケジュールクリア
   static clearWeeklySchedule(startDate: string, endDate: string): void {
     statements.clearWeeklySchedule.run(startDate, endDate);
+  }
+
+  // トランザクション内でスケジュールを更新（原子性を保証）
+  static updateWeeklyScheduleAtomically(
+    startDate: string,
+    endDate: string,
+    scheduleData: Array<{ taskId: number; dayOfWeek: number; startTime: string; endTime: string; scheduledDate: string }>
+  ): void {
+    runTransaction(() => {
+      // 既存スケジュールをクリア
+      statements.clearWeeklySchedule.run(startDate, endDate);
+      
+      // 新しいスケジュールを追加
+      for (const schedule of scheduleData) {
+        statements.insertTaskSchedule.run(
+          schedule.taskId,
+          schedule.dayOfWeek,
+          schedule.startTime,
+          schedule.endTime,
+          schedule.scheduledDate
+        );
+      }
+    });
   }
 
   // 週間スケジュール生成用のヘルパー関数

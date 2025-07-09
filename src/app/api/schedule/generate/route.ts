@@ -110,10 +110,9 @@ async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
   friday.setDate(monday.getDate() + 4);
   const endDate = friday.toISOString().split('T')[0];
   
-  // Clear existing schedule for the current week
-  TaskService.clearWeeklySchedule(startDate, endDate);
+  // Prepare schedule data for atomic transaction
+  const scheduleData: Array<{ taskId: number; dayOfWeek: number; startTime: string; endTime: string; scheduledDate: string }> = [];
   
-  // Save new schedule
   for (const [date, tasks] of Object.entries(schedule)) {
     const dayOfWeek = new Date(date).getDay();
     const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday from 0 to 7
@@ -127,16 +126,19 @@ async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
         const endHour = currentTime + estimatedHours;
         const endTime = `${Math.floor(endHour).toString().padStart(2, '0')}:${((endHour % 1) * 60).toString().padStart(2, '0')}`;
         
-        TaskService.createTaskSchedule(
-          task.id,
-          adjustedDay,
+        scheduleData.push({
+          taskId: task.id,
+          dayOfWeek: adjustedDay,
           startTime,
           endTime,
-          date
-        );
+          scheduledDate: date
+        });
         
         currentTime = endHour;
       }
     }
   }
+  
+  // Atomically clear old schedules and insert new ones
+  TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData);
 }

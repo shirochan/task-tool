@@ -125,6 +125,13 @@ export const statements = {
   }
 };
 
+// トランザクション処理
+export function runTransaction<T>(callback: (db: Database.Database) => T): T {
+  const database = getDatabase();
+  const transaction = database.transaction(callback);
+  return transaction(database);
+}
+
 // データベース接続終了
 export function closeDatabase() {
   if (db) {
