@@ -1,5 +1,6 @@
 import { statements, runTransaction } from '../database/db';
 import { Task, TaskInput, TaskScheduleWithTask, AIEstimate, AIEstimateInput } from '../types';
+import { getISOWeekDates } from '../utils';
 
 export class TaskService {
   // タスク管理
@@ -105,18 +106,7 @@ export class TaskService {
   // 週間スケジュール生成用のヘルパー関数
   static generateWeeklySchedule(): { [key: string]: TaskScheduleWithTask[] } {
     // 現在の週の月曜日から金曜日までの日付を取得
-    const today = new Date();
-    const monday = new Date(today);
-    // ISO週の開始日計算: 日曜日(0)を正しく前の週として扱う
-    const dayOfWeek = (today.getDay() + 6) % 7;
-    monday.setDate(today.getDate() - dayOfWeek);
-    
-    const weekDates: string[] = [];
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      weekDates.push(date.toISOString().split('T')[0]);
-    }
+    const weekDates = getISOWeekDates();
 
     // 各日のスケジュールを取得
     const weeklySchedule: { [key: string]: TaskScheduleWithTask[] } = {};

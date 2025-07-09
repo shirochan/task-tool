@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TaskService } from '@/lib/services/taskService';
 import { Task } from '@/lib/types';
+import { getISOWeekStart, getISOWeekDates } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,20 +38,10 @@ function generateWeeklySchedule(tasks: Task[]) {
   const schedule: { [key: string]: Task[] } = {};
   
   // Get current week dates (Monday to Friday)
-  const today = new Date();
-  const monday = new Date(today);
-  // ISO週の開始日計算: 日曜日(0)を正しく前の週として扱う
-  const dayOfWeek = (today.getDay() + 6) % 7;
-  monday.setDate(today.getDate() - dayOfWeek);
-  
-  const weekDates: string[] = [];
-  for (let i = 0; i < 5; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
-    weekDates.push(dateStr);
+  const weekDates = getISOWeekDates();
+  weekDates.forEach(dateStr => {
     schedule[dateStr] = [];
-  }
+  });
 
   // Sort tasks by priority (must first) and estimated hours
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -99,12 +90,7 @@ function generateWeeklySchedule(tasks: Task[]) {
 
 async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
   // Get current week date range
-  const today = new Date();
-  const monday = new Date(today);
-  // ISO週の開始日計算: 日曜日(0)を正しく前の週として扱う
-  const dayOfWeek = (today.getDay() + 6) % 7;
-  monday.setDate(today.getDate() - dayOfWeek);
-  
+  const monday = getISOWeekStart();
   const startDate = monday.toISOString().split('T')[0];
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
