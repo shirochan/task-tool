@@ -126,5 +126,10 @@ async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
   }
   
   // Atomically clear old schedules and insert new ones
-  TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData);
+  try {
+    TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData);
+  } catch (error) {
+    console.error('Database transaction failed:', error);
+    throw new Error('スケジュールの保存に失敗しました');
+  }
 }
