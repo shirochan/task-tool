@@ -25,7 +25,9 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
   const generateCurrentWeek = () => {
     const today = new Date();
     const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
+    // ISO週の開始日計算: 日曜日(0)を正しく前の週として扱う
+    const dayOfWeek = (today.getDay() + 6) % 7;
+    monday.setDate(today.getDate() - dayOfWeek);
     
     const week: string[] = [];
     for (let i = 0; i < 5; i++) {

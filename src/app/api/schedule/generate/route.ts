@@ -39,7 +39,9 @@ function generateWeeklySchedule(tasks: Task[]) {
   // Get current week dates (Monday to Friday)
   const today = new Date();
   const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1);
+  // ISO週の開始日計算: 日曜日(0)を正しく前の週として扱う
+  const dayOfWeek = (today.getDay() + 6) % 7;
+  monday.setDate(today.getDate() - dayOfWeek);
   
   const weekDates: string[] = [];
   for (let i = 0; i < 5; i++) {
@@ -99,7 +101,9 @@ async function saveScheduleToDatabase(schedule: { [key: string]: Task[] }) {
   // Get current week date range
   const today = new Date();
   const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1);
+  // ISO週の開始日計算: 日曜日(0)を正しく前の週として扱う
+  const dayOfWeek = (today.getDay() + 6) % 7;
+  monday.setDate(today.getDate() - dayOfWeek);
   
   const startDate = monday.toISOString().split('T')[0];
   const friday = new Date(monday);
