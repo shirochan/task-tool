@@ -52,7 +52,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.3.5",
+    "eslint-config-next": "15.4.1",
     "jest": "^30.0.4",
     "jest-environment-jsdom": "^30.0.4",
     "msw": "^2.10.4",
