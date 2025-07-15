@@ -141,6 +141,69 @@ export const statements = {
           scheduled_date = COALESCE(?, scheduled_date)
       WHERE id = ?
     `);
+  },
+
+  // ユーザー設定関連
+  get getAllSettings() {
+    return getDatabase().prepare(`
+      SELECT * FROM user_settings ORDER BY setting_key
+    `);
+  },
+
+  get getSetting() {
+    return getDatabase().prepare(`
+      SELECT * FROM user_settings WHERE setting_key = ?
+    `);
+  },
+
+  get upsertSetting() {
+    return getDatabase().prepare(`
+      INSERT INTO user_settings (setting_key, value) 
+      VALUES (?, ?) 
+      ON CONFLICT(setting_key) DO UPDATE SET 
+        value = excluded.value,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+  },
+
+  get deleteSetting() {
+    return getDatabase().prepare(`
+      DELETE FROM user_settings WHERE setting_key = ?
+    `);
+  },
+
+  // カスタムカテゴリ関連
+  get getAllCategories() {
+    return getDatabase().prepare(`
+      SELECT * FROM custom_categories ORDER BY name
+    `);
+  },
+
+  get getCategoryById() {
+    return getDatabase().prepare(`
+      SELECT * FROM custom_categories WHERE id = ?
+    `);
+  },
+
+  get insertCategory() {
+    return getDatabase().prepare(`
+      INSERT INTO custom_categories (name, color)
+      VALUES (?, ?)
+    `);
+  },
+
+  get updateCategory() {
+    return getDatabase().prepare(`
+      UPDATE custom_categories 
+      SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+  },
+
+  get deleteCategory() {
+    return getDatabase().prepare(`
+      DELETE FROM custom_categories WHERE id = ?
+    `);
   }
 };
 

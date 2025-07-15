@@ -43,7 +43,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // タスクの存在チェック
-    const task = TaskService.getTaskById(taskId);
+    const taskService = new TaskService();
+    const task = taskService.getTaskById(taskId);
     if (!task) {
       return NextResponse.json(
         { error: 'タスクが見つかりません' },
@@ -63,7 +64,7 @@ export async function PUT(request: NextRequest) {
     const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
 
     // 時間競合チェック
-    if (TaskService.checkTimeConflicts(targetDate, startTime, endTime, taskId)) {
+    if (taskService.checkTimeConflicts(targetDate, startTime, endTime, taskId)) {
       return NextResponse.json(
         { error: '指定された時間帯に他のタスクが既にスケジュールされています' },
         { status: 409 }
@@ -71,7 +72,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // タスクを移動
-    const success = TaskService.moveTaskToDate(taskId, targetDate, targetTime);
+    const success = taskService.moveTaskToDate(taskId, targetDate, targetTime);
     
     if (success) {
       return NextResponse.json(

@@ -4,7 +4,8 @@ import { TaskInput } from '@/lib/types';
 
 export async function GET() {
   try {
-    const tasks = TaskService.getAllTasks();
+    const taskService = new TaskService();
+    const tasks = taskService.getAllTasks();
     return NextResponse.json(tasks);
   } catch (error) {
     console.error('タスク取得エラー:', error);
@@ -26,7 +27,8 @@ export async function POST(request: NextRequest) {
       estimated_hours: body.estimated_hours,
     };
 
-    const task = TaskService.createTask(taskInput);
+    const taskService = new TaskService();
+    const task = taskService.createTask(taskInput);
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error('タスク作成エラー:', error);
