@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { TaskService } from '@/lib/services/taskService';
 
 export async function GET() {
@@ -48,7 +48,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const backupData = await request.json();
     
@@ -101,19 +101,11 @@ export async function POST(request: Request) {
       }
     }
     
-    // スケジュールを復元
-    const restoredSchedules = 0;
+    // スケジュールの復元は将来の機能として保留
+    // 理由：スケジュールにはtask_idが含まれているが、復元時は新しいIDが割り当てられるため
+    // タスクタイトルでマッチングするか、より高度なマッピング機能が必要
     if (backupData.data.schedules) {
-      for (const schedule of backupData.data.schedules) {
-        try {
-          // スケジュールにはtask_idが含まれているが、復元時は新しいIDが割り当てられる
-          // タスクタイトルでマッチングするか、またはスケジュールは手動で再作成してもらう
-          // 今回は安全のため、スケジュールの復元は将来の機能として保留
-          console.log(`Schedule for date ${schedule.scheduled_date} found, but schedule restoration requires task ID mapping`);
-        } catch (error) {
-          console.warn(`Failed to restore schedule for date: ${schedule.scheduled_date}`, error);
-        }
-      }
+      console.log(`Found ${backupData.data.schedules.length} schedules in backup, but schedule restoration is not yet implemented`);
     }
     
     return NextResponse.json({
@@ -121,8 +113,7 @@ export async function POST(request: Request) {
       restored: {
         tasks: restoredTasks,
         settings: backupData.data.settings?.length || 0,
-        categories: backupData.data.categories?.length || 0,
-        schedules: restoredSchedules
+        categories: backupData.data.categories?.length || 0
       }
     });
     
