@@ -56,6 +56,7 @@ export async function PUT(
       priority: body.priority,
       category: body.category,
       estimated_hours: body.estimated_hours,
+      status: body.status,
     };
 
     const taskService = new TaskService();

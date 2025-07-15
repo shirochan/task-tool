@@ -10,7 +10,8 @@ export class TaskService {
       taskInput.description || null,
       taskInput.priority,
       taskInput.category || null,
-      taskInput.estimated_hours || null
+      taskInput.estimated_hours || null,
+      taskInput.status || 'pending'
     );
     
     return statements.getTaskById.get(result.lastInsertRowid) as Task;
@@ -34,6 +35,7 @@ export class TaskService {
       taskInput.priority ?? existingTask.priority,
       taskInput.category ?? existingTask.category,
       taskInput.estimated_hours ?? existingTask.estimated_hours,
+      taskInput.status ?? existingTask.status,
       id
     );
 

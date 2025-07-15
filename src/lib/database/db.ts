@@ -40,8 +40,8 @@ export function initializeDatabase() {
 export const statements = {
   get insertTask() {
     return getDatabase().prepare(`
-      INSERT INTO tasks (title, description, priority, category, estimated_hours)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO tasks (title, description, priority, category, estimated_hours, status)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
   },
   
@@ -60,7 +60,7 @@ export const statements = {
   get updateTask() {
     return getDatabase().prepare(`
       UPDATE tasks 
-      SET title = ?, description = ?, priority = ?, category = ?, estimated_hours = ?, updated_at = CURRENT_TIMESTAMP
+      SET title = ?, description = ?, priority = ?, category = ?, estimated_hours = ?, status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
   },

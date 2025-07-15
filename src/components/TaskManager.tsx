@@ -5,10 +5,11 @@ import { Plus, Edit, Trash2, Clock, Calendar, Settings as SettingsIcon } from 'l
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Task } from '@/lib/types';
+import { Task, TASK_STATUS_LABELS, TASK_STATUS_COLORS } from '@/lib/types';
 import { TaskForm } from './TaskForm';
 import { WeeklySchedule } from './WeeklySchedule';
 import { Settings } from './Settings';
+import { ThemeToggle } from './theme-toggle';
 
 export function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -72,6 +73,14 @@ export function TaskManager() {
     return priority === 'must' ? '必須' : '希望';
   };
 
+  const getStatusLabel = (status: Task['status']) => {
+    return TASK_STATUS_LABELS[status];
+  };
+
+  const getStatusColor = (status: Task['status']) => {
+    return TASK_STATUS_COLORS[status];
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ja-JP', {
       year: 'numeric',
@@ -112,7 +121,8 @@ export function TaskManager() {
         >
           週間スケジュール
         </button>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="sm"
@@ -169,6 +179,9 @@ export function TaskManager() {
                           <CardTitle className="text-lg">{task.title}</CardTitle>
                           <Badge className={getPriorityColor(task.priority)}>
                             {getPriorityLabel(task.priority)}
+                          </Badge>
+                          <Badge className={getStatusColor(task.status)}>
+                            {getStatusLabel(task.status)}
                           </Badge>
                         </div>
                         {task.description && (
