@@ -35,6 +35,42 @@ npm run build  # Includes TypeScript checking and linting
 npm run lint && npm run test:ci && npm run build
 ```
 
+### 🚨 Pre-Push Checklist (MANDATORY)
+
+**IMPORTANT**: Always run these commands locally before pushing to remote repository:
+
+```bash
+# 1. Run all tests in CI mode
+npm run test:ci
+
+# 2. Run linter
+npm run lint
+
+# 3. Verify build
+npm run build
+
+# 4. Optional: Run all quality checks in one command
+npm run lint && npm run test:ci && npm run build
+```
+
+**Why this is critical:**
+- Prevents CI pipeline failures
+- Ensures code quality and consistency
+- Catches issues early in development cycle
+- Maintains stable main branch
+
+**What to check:**
+- ✅ All tests pass (0 failures)
+- ✅ No TypeScript errors
+- ✅ No ESLint errors
+- ✅ Build completes successfully
+- ✅ Test coverage remains adequate
+
+**If any check fails:**
+- Fix the issues locally
+- Re-run the checks
+- Only push when ALL checks pass
+
 ### Docker Development
 ```bash
 # Build Docker image
