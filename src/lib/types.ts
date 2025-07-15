@@ -36,7 +36,11 @@ export interface TaskScheduleWithTask extends TaskSchedule {
   title: string;
   description?: string;
   priority: 'must' | 'want';
+  category?: string;
   estimated_hours?: number;
+  actual_hours?: number;
+  status: TaskStatus;
+  updated_at: string;
 }
 
 export interface AIEstimate {

@@ -50,6 +50,7 @@ export async function PUT(
     }
 
     const body = await request.json();
+    
     const taskInput: Partial<TaskInput> = {
       title: body.title,
       description: body.description,
@@ -61,6 +62,7 @@ export async function PUT(
 
     const taskService = new TaskService();
     const task = taskService.updateTask(id, taskInput);
+    
     if (!task) {
       return NextResponse.json(
         { error: 'タスクが見つかりません' },
