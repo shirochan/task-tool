@@ -146,21 +146,21 @@ export const statements = {
   // ユーザー設定関連
   get getAllSettings() {
     return getDatabase().prepare(`
-      SELECT * FROM user_settings ORDER BY key
+      SELECT * FROM user_settings ORDER BY setting_key
     `);
   },
 
   get getSetting() {
     return getDatabase().prepare(`
-      SELECT * FROM user_settings WHERE key = ?
+      SELECT * FROM user_settings WHERE setting_key = ?
     `);
   },
 
   get upsertSetting() {
     return getDatabase().prepare(`
-      INSERT INTO user_settings (key, value) 
+      INSERT INTO user_settings (setting_key, value) 
       VALUES (?, ?) 
-      ON CONFLICT(key) DO UPDATE SET 
+      ON CONFLICT(setting_key) DO UPDATE SET 
         value = excluded.value,
         updated_at = CURRENT_TIMESTAMP
     `);
@@ -168,7 +168,7 @@ export const statements = {
 
   get deleteSetting() {
     return getDatabase().prepare(`
-      DELETE FROM user_settings WHERE key = ?
+      DELETE FROM user_settings WHERE setting_key = ?
     `);
   },
 

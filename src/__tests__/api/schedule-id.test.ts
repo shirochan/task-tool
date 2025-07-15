@@ -8,14 +8,20 @@ import { TaskService } from '@/lib/services/taskService'
 
 // TaskServiceのモック
 jest.mock('@/lib/services/taskService', () => ({
-  TaskService: {
+  TaskService: jest.fn().mockImplementation(() => ({
     updateTaskSchedule: jest.fn(),
-  },
+  })),
 }))
 
 describe('/api/schedule/[id]', () => {
+  let mockUpdateTaskSchedule: jest.Mock
+
   beforeEach(() => {
     jest.clearAllMocks()
+    mockUpdateTaskSchedule = jest.fn()
+    ;(TaskService as jest.Mock).mockImplementation(() => ({
+      updateTaskSchedule: mockUpdateTaskSchedule,
+    }))
   })
 
   describe('PUT', () => {
@@ -26,7 +32,7 @@ describe('/api/schedule/[id]', () => {
         scheduled_date: '2024-01-08'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -42,7 +48,7 @@ describe('/api/schedule/[id]', () => {
 
       expect(response.status).toBe(200)
       expect(data.message).toBe('スケジュールが正常に更新されました')
-      expect(TaskService.updateTaskSchedule).toHaveBeenCalledWith(1, {
+      expect(mockUpdateTaskSchedule).toHaveBeenCalledWith(1, {
         start_time: '10:00',
         end_time: '12:00',
         scheduled_date: '2024-01-08'
@@ -54,7 +60,7 @@ describe('/api/schedule/[id]', () => {
         start_time: '09:00'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -70,7 +76,7 @@ describe('/api/schedule/[id]', () => {
 
       expect(response.status).toBe(200)
       expect(data.message).toBe('スケジュールが正常に更新されました')
-      expect(TaskService.updateTaskSchedule).toHaveBeenCalledWith(1, {
+      expect(mockUpdateTaskSchedule).toHaveBeenCalledWith(1, {
         start_time: '09:00'
       })
     })
@@ -80,7 +86,7 @@ describe('/api/schedule/[id]', () => {
         end_time: '17:00'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -96,7 +102,7 @@ describe('/api/schedule/[id]', () => {
 
       expect(response.status).toBe(200)
       expect(data.message).toBe('スケジュールが正常に更新されました')
-      expect(TaskService.updateTaskSchedule).toHaveBeenCalledWith(1, {
+      expect(mockUpdateTaskSchedule).toHaveBeenCalledWith(1, {
         end_time: '17:00'
       })
     })
@@ -106,7 +112,7 @@ describe('/api/schedule/[id]', () => {
         scheduled_date: '2024-01-09'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -122,7 +128,7 @@ describe('/api/schedule/[id]', () => {
 
       expect(response.status).toBe(200)
       expect(data.message).toBe('スケジュールが正常に更新されました')
-      expect(TaskService.updateTaskSchedule).toHaveBeenCalledWith(1, {
+      expect(mockUpdateTaskSchedule).toHaveBeenCalledWith(1, {
         scheduled_date: '2024-01-09'
       })
     })
@@ -321,7 +327,7 @@ describe('/api/schedule/[id]', () => {
         start_time: '10:00'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(false)
+      mockUpdateTaskSchedule.mockReturnValue(false)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/999', {
         method: 'PUT',
@@ -337,7 +343,7 @@ describe('/api/schedule/[id]', () => {
 
       expect(response.status).toBe(404)
       expect(data.error).toBe('スケジュールが見つからないか、更新に失敗しました')
-      expect(TaskService.updateTaskSchedule).toHaveBeenCalledWith(999, {
+      expect(mockUpdateTaskSchedule).toHaveBeenCalledWith(999, {
         start_time: '10:00'
       })
     })
@@ -364,7 +370,7 @@ describe('/api/schedule/[id]', () => {
         scheduled_date: '2024-01-08' // 月曜日
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -385,7 +391,7 @@ describe('/api/schedule/[id]', () => {
         scheduled_date: '2024-01-12' // 金曜日
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -407,7 +413,7 @@ describe('/api/schedule/[id]', () => {
         end_time: '01:00'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -429,7 +435,7 @@ describe('/api/schedule/[id]', () => {
         end_time: '23:59'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/1', {
         method: 'PUT',
@@ -450,7 +456,7 @@ describe('/api/schedule/[id]', () => {
         start_time: '10:00'
       }
 
-      ;(TaskService.updateTaskSchedule as jest.Mock).mockReturnValue(true)
+      mockUpdateTaskSchedule.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/123', {
         method: 'PUT',
@@ -464,7 +470,7 @@ describe('/api/schedule/[id]', () => {
       const response = await PUT(request, context)
 
       expect(response.status).toBe(200)
-      expect(TaskService.updateTaskSchedule).toHaveBeenCalledWith(123, {
+      expect(mockUpdateTaskSchedule).toHaveBeenCalledWith(123, {
         start_time: '10:00'
       })
     })

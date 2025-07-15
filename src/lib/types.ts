@@ -112,7 +112,7 @@ export const TASK_STATUS_COLORS = {
 // ユーザー設定関連の型定義
 export interface UserSetting {
   id: number;
-  key: string;
+  setting_key: string;
   value: string;
   created_at: string;
   updated_at: string;
@@ -129,7 +129,7 @@ export interface UserSettings {
 }
 
 export interface UserSettingInput {
-  key: string;
+  setting_key: string;
   value: string;
 }
 
