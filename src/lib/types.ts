@@ -8,7 +8,7 @@ export interface Task {
   category?: string;
   estimated_hours?: number;
   actual_hours?: number;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: 'pending' | 'in_progress' | 'on_hold' | 'review' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +19,7 @@ export interface TaskInput {
   priority: 'must' | 'want';
   category?: string;
   estimated_hours?: number;
+  status?: TaskStatus;
 }
 
 export interface TaskSchedule {
@@ -86,6 +87,27 @@ export const DAYS_OF_WEEK = {
 } as const;
 
 export type DayOfWeek = keyof typeof DAYS_OF_WEEK;
+
+// タスクステータス関連の定義
+export type TaskStatus = 'pending' | 'in_progress' | 'on_hold' | 'review' | 'completed' | 'cancelled';
+
+export const TASK_STATUS_LABELS = {
+  pending: '未着手',
+  in_progress: '進行中',
+  on_hold: '保留中',
+  review: 'レビュー待ち',
+  completed: '完了',
+  cancelled: 'キャンセル'
+} as const;
+
+export const TASK_STATUS_COLORS = {
+  pending: 'bg-gray-100 text-gray-800',
+  in_progress: 'bg-blue-100 text-blue-800',
+  on_hold: 'bg-yellow-100 text-yellow-800',
+  review: 'bg-purple-100 text-purple-800',
+  completed: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800'
+} as const;
 
 // ユーザー設定関連の型定義
 export interface UserSetting {

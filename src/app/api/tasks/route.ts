@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       priority: body.priority,
       category: body.category,
       estimated_hours: body.estimated_hours,
+      status: body.status,
     };
 
     const taskService = new TaskService();
