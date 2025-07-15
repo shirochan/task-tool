@@ -16,7 +16,8 @@ export async function GET(
       );
     }
 
-    const task = TaskService.getTaskById(id);
+    const taskService = new TaskService();
+    const task = taskService.getTaskById(id);
     if (!task) {
       return NextResponse.json(
         { error: 'タスクが見つかりません' },
@@ -57,7 +58,8 @@ export async function PUT(
       estimated_hours: body.estimated_hours,
     };
 
-    const task = TaskService.updateTask(id, taskInput);
+    const taskService = new TaskService();
+    const task = taskService.updateTask(id, taskInput);
     if (!task) {
       return NextResponse.json(
         { error: 'タスクが見つかりません' },
@@ -89,7 +91,8 @@ export async function DELETE(
       );
     }
 
-    const success = TaskService.deleteTask(id);
+    const taskService = new TaskService();
+    const success = taskService.deleteTask(id);
     if (!success) {
       return NextResponse.json(
         { error: 'タスクが見つかりません' },
