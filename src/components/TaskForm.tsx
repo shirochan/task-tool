@@ -68,6 +68,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
       status: task.status,
     } : {
       priority: 'want',
+      status: 'pending',
     },
   });
 

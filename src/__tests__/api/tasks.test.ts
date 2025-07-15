@@ -111,31 +111,19 @@ describe('/api/tasks', () => {
       expect(data.title).toBe(newTaskInput.title)
       expect(data.priority).toBe(newTaskInput.priority)
       expect(data.status).toBe('pending')
-      expect(mockCreateTask).toHaveBeenCalledWith(newTaskInput)
+      expect(mockCreateTask).toHaveBeenCalledWith({
+        ...newTaskInput,
+        status: 'pending'
+      })
     })
 
-    it('必須フィールドが不足している場合にもタスクが作成される（現在の実装）', async () => {
+    it('必須フィールドが不足している場合にバリデーションエラーが発生する', async () => {
 
       const invalidInput = {
         description: 'タイトルが不足しています',
         priority: 'must' as const,
       }
 
-      const createdTask = {
-        id: 4,
-        title: undefined,
-        description: invalidInput.description,
-        priority: invalidInput.priority,
-        category: undefined,
-        estimated_hours: undefined,
-        actual_hours: undefined,
-        status: 'pending' as const,
-        created_at: '2024-01-03T00:00:00Z',
-        updated_at: '2024-01-03T00:00:00Z',
-      }
-      
-      mockCreateTask.mockReturnValue(createdTask)
-
       const request = new NextRequest('http://localhost:3000/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -145,32 +133,18 @@ describe('/api/tasks', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(201)
-      expect(data).toHaveProperty('id')
+      expect(response.status).toBe(400)
+      expect(data).toHaveProperty('error')
+      expect(data.error).toBe('タイトルは必須です')
     })
 
-    it('不正なpriorityが指定された場合にもタスクが作成される（現在の実装）', async () => {
+    it('不正なpriorityが指定された場合にバリデーションエラーが発生する', async () => {
 
       const invalidInput = {
         title: 'テストタスク',
         priority: 'invalid' as 'must' | 'want',
       }
 
-      const createdTask = {
-        id: 5,
-        title: invalidInput.title,
-        description: undefined,
-        priority: invalidInput.priority,
-        category: undefined,
-        estimated_hours: undefined,
-        actual_hours: undefined,
-        status: 'pending' as const,
-        created_at: '2024-01-03T00:00:00Z',
-        updated_at: '2024-01-03T00:00:00Z',
-      }
-      
-      mockCreateTask.mockReturnValue(createdTask)
-
       const request = new NextRequest('http://localhost:3000/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,8 +154,9 @@ describe('/api/tasks', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(201)
-      expect(data).toHaveProperty('id')
+      expect(response.status).toBe(400)
+      expect(data).toHaveProperty('error')
+      expect(data.error).toBe('無効な優先度値です')
     })
   })
 })
