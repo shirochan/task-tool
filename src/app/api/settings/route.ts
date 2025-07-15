@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   try {
     const data: UserSettingInput = await request.json();
     
-    if (!data.key || !data.value) {
+    if (!data.setting_key || !data.value) {
       return NextResponse.json(
         { error: 'キーと値が必要です' },
         { status: 400 }
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const taskService = new TaskService();
-    const setting = await taskService.upsertSetting(data.key, data.value);
+    const setting = await taskService.upsertSetting(data.setting_key, data.value);
     
     return NextResponse.json(setting);
   } catch (error) {
