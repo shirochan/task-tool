@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     category TEXT,
     estimated_hours REAL,
     actual_hours REAL,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'on_hold', 'review', 'completed', 'cancelled')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

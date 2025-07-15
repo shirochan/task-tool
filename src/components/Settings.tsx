@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Settings as SettingsIcon, Plus, Edit, Trash2, Save, X, Download, Upload } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomCategory, CustomCategoryInput } from '@/lib/types';
 
 interface SettingsProps {
@@ -13,6 +15,7 @@ interface SettingsProps {
 }
 
 export function Settings({ onClose }: SettingsProps) {
+  const { theme, setTheme } = useTheme();
   const [workStartTime, setWorkStartTime] = useState('10:00');
   const [workEndTime, setWorkEndTime] = useState('19:00');
   const [dailyWorkHours, setDailyWorkHours] = useState(8);
@@ -237,6 +240,31 @@ export function Settings({ onClose }: SettingsProps) {
         </div>
 
         <div className="space-y-6">
+          {/* 表示設定 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>表示設定</CardTitle>
+              <CardDescription>
+                アプリケーションの表示に関する設定です
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="theme">テーマ</Label>
+                <Select value={theme} onValueChange={setTheme}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="テーマを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="system">システム設定に従う</SelectItem>
+                    <SelectItem value="light">ライトモード</SelectItem>
+                    <SelectItem value="dark">ダークモード</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* 作業時間設定 */}
           <Card>
             <CardHeader>

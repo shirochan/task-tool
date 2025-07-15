@@ -40,8 +40,8 @@ export function initializeDatabase() {
 export const statements = {
   get insertTask() {
     return getDatabase().prepare(`
-      INSERT INTO tasks (title, description, priority, category, estimated_hours)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO tasks (title, description, priority, category, estimated_hours, status)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
   },
   
@@ -60,7 +60,7 @@ export const statements = {
   get updateTask() {
     return getDatabase().prepare(`
       UPDATE tasks 
-      SET title = ?, description = ?, priority = ?, category = ?, estimated_hours = ?, updated_at = CURRENT_TIMESTAMP
+      SET title = ?, description = ?, priority = ?, category = ?, estimated_hours = ?, status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
   },
@@ -81,7 +81,23 @@ export const statements = {
   
   get getScheduleByDate() {
     return getDatabase().prepare(`
-      SELECT ts.*, t.title, t.description, t.priority, t.estimated_hours
+      SELECT 
+        ts.id,
+        ts.task_id,
+        ts.day_of_week,
+        ts.start_time,
+        ts.end_time,
+        ts.scheduled_date,
+        ts.created_at as schedule_created_at,
+        t.title,
+        t.description,
+        t.priority,
+        t.category,
+        t.estimated_hours,
+        t.actual_hours,
+        t.status,
+        t.created_at,
+        t.updated_at
       FROM task_schedules ts
       JOIN tasks t ON ts.task_id = t.id
       WHERE ts.scheduled_date = ?
@@ -91,7 +107,23 @@ export const statements = {
   
   get getWeeklySchedule() {
     return getDatabase().prepare(`
-      SELECT ts.*, t.title, t.description, t.priority, t.estimated_hours
+      SELECT 
+        ts.id,
+        ts.task_id,
+        ts.day_of_week,
+        ts.start_time,
+        ts.end_time,
+        ts.scheduled_date,
+        ts.created_at as schedule_created_at,
+        t.title,
+        t.description,
+        t.priority,
+        t.category,
+        t.estimated_hours,
+        t.actual_hours,
+        t.status,
+        t.created_at,
+        t.updated_at
       FROM task_schedules ts
       JOIN tasks t ON ts.task_id = t.id
       WHERE ts.scheduled_date BETWEEN ? AND ?
