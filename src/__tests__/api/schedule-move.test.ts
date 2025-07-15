@@ -8,16 +8,28 @@ import { TaskService } from '@/lib/services/taskService'
 
 // TaskServiceのモック
 jest.mock('@/lib/services/taskService', () => ({
-  TaskService: {
+  TaskService: jest.fn().mockImplementation(() => ({
     getTaskById: jest.fn(),
     moveTaskToDate: jest.fn(),
     checkTimeConflicts: jest.fn(),
-  },
+  })),
 }))
 
 describe('/api/schedule/move', () => {
+  let mockGetTaskById: jest.Mock
+  let mockMoveTaskToDate: jest.Mock
+  let mockCheckTimeConflicts: jest.Mock
+
   beforeEach(() => {
     jest.clearAllMocks()
+    mockGetTaskById = jest.fn()
+    mockMoveTaskToDate = jest.fn()
+    mockCheckTimeConflicts = jest.fn()
+    ;(TaskService as jest.Mock).mockImplementation(() => ({
+      getTaskById: mockGetTaskById,
+      moveTaskToDate: mockMoveTaskToDate,
+      checkTimeConflicts: mockCheckTimeConflicts,
+    }))
   })
 
   describe('PUT', () => {
@@ -38,9 +50,9 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(false)
-      ;(TaskService.moveTaskToDate as jest.Mock).mockReturnValue(true)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(false)
+      mockMoveTaskToDate.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -55,14 +67,14 @@ describe('/api/schedule/move', () => {
 
       expect(response.status).toBe(200)
       expect(data.message).toBe('タスクが正常に移動されました')
-      expect(TaskService.getTaskById).toHaveBeenCalledWith(1)
-      expect(TaskService.checkTimeConflicts).toHaveBeenCalledWith(
+      expect(mockGetTaskById).toHaveBeenCalledWith(1)
+      expect(mockCheckTimeConflicts).toHaveBeenCalledWith(
         '2024-01-08',
         '10:00',
         '12:00', // 2時間後
         1
       )
-      expect(TaskService.moveTaskToDate).toHaveBeenCalledWith(1, '2024-01-08', '10:00')
+      expect(mockMoveTaskToDate).toHaveBeenCalledWith(1, '2024-01-08', '10:00')
     })
 
     it('時間指定なしでタスクを移動できる', async () => {
@@ -81,9 +93,9 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(false)
-      ;(TaskService.moveTaskToDate as jest.Mock).mockReturnValue(true)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(false)
+      mockMoveTaskToDate.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -98,13 +110,13 @@ describe('/api/schedule/move', () => {
 
       expect(response.status).toBe(200)
       expect(data.message).toBe('タスクが正常に移動されました')
-      expect(TaskService.checkTimeConflicts).toHaveBeenCalledWith(
+      expect(mockCheckTimeConflicts).toHaveBeenCalledWith(
         '2024-01-08',
         '10:00', // デフォルト時間
         '11:00', // 1時間後
         1
       )
-      expect(TaskService.moveTaskToDate).toHaveBeenCalledWith(1, '2024-01-08', undefined)
+      expect(mockMoveTaskToDate).toHaveBeenCalledWith(1, '2024-01-08', undefined)
     })
 
     it('必須パラメーターが不足している場合は400エラーを返す', async () => {
@@ -219,7 +231,7 @@ describe('/api/schedule/move', () => {
         targetDate: '2024-01-08'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(null)
+      mockGetTaskById.mockReturnValue(null)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -234,7 +246,7 @@ describe('/api/schedule/move', () => {
 
       expect(response.status).toBe(404)
       expect(data.error).toBe('タスクが見つかりません')
-      expect(TaskService.getTaskById).toHaveBeenCalledWith(999)
+      expect(mockGetTaskById).toHaveBeenCalledWith(999)
     })
 
     it('時間競合がある場合は409エラーを返す', async () => {
@@ -254,8 +266,8 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(true)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -270,13 +282,13 @@ describe('/api/schedule/move', () => {
 
       expect(response.status).toBe(409)
       expect(data.error).toBe('指定された時間帯に他のタスクが既にスケジュールされています')
-      expect(TaskService.checkTimeConflicts).toHaveBeenCalledWith(
+      expect(mockCheckTimeConflicts).toHaveBeenCalledWith(
         '2024-01-08',
         '10:00',
         '12:00',
         1
       )
-      expect(TaskService.moveTaskToDate).not.toHaveBeenCalled()
+      expect(mockMoveTaskToDate).not.toHaveBeenCalled()
     })
 
     it('タスクの移動に失敗した場合は500エラーを返す', async () => {
@@ -295,9 +307,9 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(false)
-      ;(TaskService.moveTaskToDate as jest.Mock).mockReturnValue(false)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(false)
+      mockMoveTaskToDate.mockReturnValue(false)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -312,7 +324,7 @@ describe('/api/schedule/move', () => {
 
       expect(response.status).toBe(500)
       expect(data.error).toBe('タスクの移動に失敗しました')
-      expect(TaskService.moveTaskToDate).toHaveBeenCalledWith(1, '2024-01-08', undefined)
+      expect(mockMoveTaskToDate).toHaveBeenCalledWith(1, '2024-01-08', undefined)
     })
 
     it('estimated_hoursが未設定の場合はデフォルト値を使用する', async () => {
@@ -332,9 +344,9 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(false)
-      ;(TaskService.moveTaskToDate as jest.Mock).mockReturnValue(true)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(false)
+      mockMoveTaskToDate.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -347,7 +359,7 @@ describe('/api/schedule/move', () => {
       const response = await PUT(request)
 
       expect(response.status).toBe(200)
-      expect(TaskService.checkTimeConflicts).toHaveBeenCalledWith(
+      expect(mockCheckTimeConflicts).toHaveBeenCalledWith(
         '2024-01-08',
         '10:00',
         '11:00', // デフォルト1時間後
@@ -388,9 +400,9 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(false)
-      ;(TaskService.moveTaskToDate as jest.Mock).mockReturnValue(true)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(false)
+      mockMoveTaskToDate.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -403,7 +415,7 @@ describe('/api/schedule/move', () => {
       const response = await PUT(request)
 
       expect(response.status).toBe(200)
-      expect(TaskService.checkTimeConflicts).toHaveBeenCalledWith(
+      expect(mockCheckTimeConflicts).toHaveBeenCalledWith(
         '2024-01-08',
         '10:00',
         '11:30', // 1.5時間後
@@ -427,9 +439,9 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(false)
-      ;(TaskService.moveTaskToDate as jest.Mock).mockReturnValue(true)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(false)
+      mockMoveTaskToDate.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',
@@ -460,9 +472,9 @@ describe('/api/schedule/move', () => {
         updated_at: '2024-01-01T00:00:00Z'
       }
 
-      ;(TaskService.getTaskById as jest.Mock).mockReturnValue(mockTask)
-      ;(TaskService.checkTimeConflicts as jest.Mock).mockReturnValue(false)
-      ;(TaskService.moveTaskToDate as jest.Mock).mockReturnValue(true)
+      mockGetTaskById.mockReturnValue(mockTask)
+      mockCheckTimeConflicts.mockReturnValue(false)
+      mockMoveTaskToDate.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/schedule/move', {
         method: 'PUT',

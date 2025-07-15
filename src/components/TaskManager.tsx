@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Clock, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, Calendar, Settings as SettingsIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Task } from '@/lib/types';
 import { TaskForm } from './TaskForm';
 import { WeeklySchedule } from './WeeklySchedule';
+import { Settings } from './Settings';
 
 export function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [activeTab, setActiveTab] = useState<'tasks' | 'schedule'>('tasks');
+  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -110,6 +112,15 @@ export function TaskManager() {
         >
           週間スケジュール
         </button>
+        <div className="ml-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSettings(true)}
+          >
+            <SettingsIcon className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {activeTab === 'tasks' && (
@@ -210,6 +221,11 @@ export function TaskManager() {
 
       {activeTab === 'schedule' && (
         <WeeklySchedule tasks={tasks} />
+      )}
+
+      {/* 設定モーダル */}
+      {showSettings && (
+        <Settings onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

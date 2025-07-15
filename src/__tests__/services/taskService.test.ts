@@ -27,8 +27,11 @@ jest.mock('@/lib/database/db', () => ({
 }))
 
 describe('TaskService', () => {
+  let taskService: TaskService
+
   beforeEach(() => {
     jest.clearAllMocks()
+    taskService = new TaskService()
   })
 
   describe('createTask', () => {
@@ -54,7 +57,7 @@ describe('TaskService', () => {
       ;(statements.insertTask.run as jest.Mock).mockReturnValue(mockResult)
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(mockTask)
 
-      const result = TaskService.createTask(taskInput)
+      const result = taskService.createTask(taskInput)
 
       expect(statements.insertTask.run).toHaveBeenCalledWith(
         taskInput.title,
@@ -90,7 +93,7 @@ describe('TaskService', () => {
       ;(statements.insertTask.run as jest.Mock).mockReturnValue(mockResult)
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(mockTask)
 
-      const result = TaskService.createTask(taskInput)
+      const result = taskService.createTask(taskInput)
 
       expect(statements.insertTask.run).toHaveBeenCalledWith(
         taskInput.title,
@@ -120,7 +123,7 @@ describe('TaskService', () => {
 
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(mockTask)
 
-      const result = TaskService.getTaskById(1)
+      const result = taskService.getTaskById(1)
 
       expect(statements.getTaskById.get).toHaveBeenCalledWith(1)
       expect(result).toEqual(mockTask)
@@ -129,7 +132,7 @@ describe('TaskService', () => {
     it('存在しないIDの場合nullを返す', () => {
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(null)
 
-      const result = TaskService.getTaskById(999)
+      const result = taskService.getTaskById(999)
 
       expect(statements.getTaskById.get).toHaveBeenCalledWith(999)
       expect(result).toBeNull()
@@ -167,7 +170,7 @@ describe('TaskService', () => {
 
       ;(statements.getAllTasks.all as jest.Mock).mockReturnValue(mockTasks)
 
-      const result = TaskService.getAllTasks()
+      const result = taskService.getAllTasks()
 
       expect(statements.getAllTasks.all).toHaveBeenCalled()
       expect(result).toEqual(mockTasks)
@@ -176,7 +179,7 @@ describe('TaskService', () => {
     it('タスクが存在しない場合空配列を返す', () => {
       ;(statements.getAllTasks.all as jest.Mock).mockReturnValue([])
 
-      const result = TaskService.getAllTasks()
+      const result = taskService.getAllTasks()
 
       expect(result).toEqual([])
     })
@@ -212,7 +215,7 @@ describe('TaskService', () => {
         .mockReturnValueOnce(existingTask)
         .mockReturnValueOnce(updatedTask)
 
-      const result = TaskService.updateTask(1, updates)
+      const result = taskService.updateTask(1, updates)
 
       expect(statements.getTaskById.get).toHaveBeenCalledTimes(2)
       expect(statements.getTaskById.get).toHaveBeenNthCalledWith(1, 1)
@@ -231,7 +234,7 @@ describe('TaskService', () => {
     it('存在しないタスクの更新時にnullを返す', () => {
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(null)
 
-      const result = TaskService.updateTask(999, { title: '更新' })
+      const result = taskService.updateTask(999, { title: '更新' })
 
       expect(statements.getTaskById.get).toHaveBeenCalledWith(999)
       expect(statements.updateTask.run).not.toHaveBeenCalled()
@@ -266,7 +269,7 @@ describe('TaskService', () => {
         .mockReturnValueOnce(existingTask)
         .mockReturnValueOnce(updatedTask)
 
-      const result = TaskService.updateTask(1, updates)
+      const result = taskService.updateTask(1, updates)
 
       expect(statements.updateTask.run).toHaveBeenCalledWith(
         '元のタスク',
@@ -285,7 +288,7 @@ describe('TaskService', () => {
       const mockResult = { changes: 1 }
       ;(statements.deleteTask.run as jest.Mock).mockReturnValue(mockResult)
 
-      const result = TaskService.deleteTask(1)
+      const result = taskService.deleteTask(1)
 
       expect(statements.deleteTask.run).toHaveBeenCalledWith(1)
       expect(result).toBe(true)
@@ -295,7 +298,7 @@ describe('TaskService', () => {
       const mockResult = { changes: 0 }
       ;(statements.deleteTask.run as jest.Mock).mockReturnValue(mockResult)
 
-      const result = TaskService.deleteTask(999)
+      const result = taskService.deleteTask(999)
 
       expect(statements.deleteTask.run).toHaveBeenCalledWith(999)
       expect(result).toBe(false)
@@ -304,7 +307,7 @@ describe('TaskService', () => {
 
   describe('createTaskSchedule', () => {
     it('タスクスケジュールを作成できる', () => {
-      TaskService.createTaskSchedule(1, 1, '09:00', '11:00', '2024-01-08')
+      taskService.createTaskSchedule(1, 1, '09:00', '11:00', '2024-01-08')
 
       expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
         1,
@@ -336,7 +339,7 @@ describe('TaskService', () => {
 
       ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.getScheduleByDate('2024-01-08')
+      const result = taskService.getScheduleByDate('2024-01-08')
 
       expect(statements.getScheduleByDate.all).toHaveBeenCalledWith('2024-01-08')
       expect(result).toEqual(mockSchedules)
@@ -363,7 +366,7 @@ describe('TaskService', () => {
 
       ;(statements.getWeeklySchedule.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.getWeeklySchedule('2024-01-08', '2024-01-12')
+      const result = taskService.getWeeklySchedule('2024-01-08', '2024-01-12')
 
       expect(statements.getWeeklySchedule.all).toHaveBeenCalledWith('2024-01-08', '2024-01-12')
       expect(result).toEqual(mockSchedules)
@@ -392,7 +395,7 @@ describe('TaskService', () => {
 
       ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(mockEstimate)
 
-      const result = TaskService.createAIEstimate(estimateInput)
+      const result = taskService.createAIEstimate(estimateInput)
 
       expect(statements.insertAIEstimate.run).toHaveBeenCalledWith(
         1,
@@ -423,7 +426,7 @@ describe('TaskService', () => {
 
       ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(mockEstimate)
 
-      const result = TaskService.createAIEstimate(estimateInput)
+      const result = taskService.createAIEstimate(estimateInput)
 
       expect(statements.insertAIEstimate.run).toHaveBeenCalledWith(
         1,
@@ -450,7 +453,7 @@ describe('TaskService', () => {
 
       ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(mockEstimate)
 
-      const result = TaskService.getLatestEstimate(1)
+      const result = taskService.getLatestEstimate(1)
 
       expect(statements.getLatestEstimate.get).toHaveBeenCalledWith(1)
       expect(result).toEqual(mockEstimate)
@@ -459,7 +462,7 @@ describe('TaskService', () => {
     it('見積もりが存在しない場合nullを返す', () => {
       ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(null)
 
-      const result = TaskService.getLatestEstimate(999)
+      const result = taskService.getLatestEstimate(999)
 
       expect(result).toBeNull()
     })
@@ -468,7 +471,7 @@ describe('TaskService', () => {
   describe('generateWeeklySchedule', () => {
     beforeEach(() => {
       // generateWeeklyScheduleの日付計算をモック
-      jest.spyOn(TaskService, 'generateWeeklySchedule').mockImplementation(() => {
+      jest.spyOn(taskService, 'generateWeeklySchedule').mockImplementation(() => {
         const mockWeeklySchedule: { [key: string]: TaskScheduleWithTask[] } = {
           '2024-01-08': [],
           '2024-01-09': [],
@@ -485,7 +488,7 @@ describe('TaskService', () => {
     })
 
     it('週間スケジュールを生成できる', () => {
-      const result = TaskService.generateWeeklySchedule()
+      const result = taskService.generateWeeklySchedule()
 
       expect(result).toHaveProperty('2024-01-08')
       expect(result).toHaveProperty('2024-01-09')
@@ -511,7 +514,7 @@ describe('TaskService', () => {
 
       ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.getScheduleByDate('2024-01-08')
+      const result = taskService.getScheduleByDate('2024-01-08')
 
       expect(statements.getScheduleByDate.all).toHaveBeenCalledWith('2024-01-08')
       expect(result).toEqual(mockSchedules)
@@ -541,7 +544,7 @@ describe('TaskService', () => {
 
       ;(statements.getWeeklySchedule.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.getWeeklySchedule('2024-01-08', '2024-01-12')
+      const result = taskService.getWeeklySchedule('2024-01-08', '2024-01-12')
 
       expect(statements.getWeeklySchedule.all).toHaveBeenCalledWith('2024-01-08', '2024-01-12')
       expect(result).toEqual(mockSchedules)
@@ -570,7 +573,7 @@ describe('TaskService', () => {
 
       ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(mockEstimate)
 
-      const result = TaskService.createAIEstimate(estimateInput)
+      const result = taskService.createAIEstimate(estimateInput)
 
       expect(statements.insertAIEstimate.run).toHaveBeenCalledWith(
         1,
@@ -596,7 +599,7 @@ describe('TaskService', () => {
 
       ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(mockEstimate)
 
-      const result = TaskService.getLatestEstimate(1)
+      const result = taskService.getLatestEstimate(1)
 
       expect(statements.getLatestEstimate.get).toHaveBeenCalledWith(1)
       expect(result).toEqual(mockEstimate)
@@ -605,7 +608,7 @@ describe('TaskService', () => {
     it('存在しないタスクのAI見積もり取得時はnullが返される', () => {
       ;(statements.getLatestEstimate.get as jest.Mock).mockReturnValue(null)
 
-      const result = TaskService.getLatestEstimate(999)
+      const result = taskService.getLatestEstimate(999)
 
       expect(statements.getLatestEstimate.get).toHaveBeenCalledWith(999)
       expect(result).toBeNull()
@@ -634,7 +637,7 @@ describe('TaskService', () => {
 
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(createdTask)
 
-      const result = TaskService.createTask(taskInput)
+      const result = taskService.createTask(taskInput)
 
       expect(result).toEqual(createdTask)
     })
@@ -661,7 +664,7 @@ describe('TaskService', () => {
 
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(createdTask)
 
-      const result = TaskService.createTask(taskInput)
+      const result = taskService.createTask(taskInput)
 
       expect(result).toEqual(createdTask)
     })
@@ -688,7 +691,7 @@ describe('TaskService', () => {
 
       ;(statements.getTaskById.get as jest.Mock).mockReturnValue(createdTask)
 
-      const result = TaskService.createTask(taskInput)
+      const result = taskService.createTask(taskInput)
 
       expect(result).toEqual(createdTask)
     })
@@ -699,7 +702,7 @@ describe('TaskService', () => {
       const startDate = '2024-01-08'
       const endDate = '2024-01-12'
 
-      TaskService.clearWeeklySchedule(startDate, endDate)
+      taskService.clearWeeklySchedule(startDate, endDate)
 
       expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(startDate, endDate)
     })
@@ -707,7 +710,7 @@ describe('TaskService', () => {
     it('同じ日付でのクリアも実行できる', () => {
       const date = '2024-01-08'
 
-      TaskService.clearWeeklySchedule(date, date)
+      taskService.clearWeeklySchedule(date, date)
 
       expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(date, date)
     })
@@ -739,7 +742,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
+      taskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
 
       expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
       expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(startDate, endDate)
@@ -771,7 +774,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
+      taskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
 
       expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
       expect(statements.clearWeeklySchedule.run).toHaveBeenCalledWith(startDate, endDate)
@@ -797,7 +800,7 @@ describe('TaskService', () => {
       })
 
       expect(() => {
-        TaskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
+        taskService.updateWeeklyScheduleAtomically(startDate, endDate, scheduleData)
       }).toThrow('Database transaction failed')
 
       expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
@@ -829,7 +832,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.moveTaskToDate(taskId, targetDate, targetTime)
+      const result = taskService.moveTaskToDate(taskId, targetDate, targetTime)
 
       expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
       expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
@@ -866,7 +869,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.moveTaskToDate(taskId, targetDate)
+      const result = taskService.moveTaskToDate(taskId, targetDate)
 
       expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
         taskId,
@@ -886,7 +889,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.moveTaskToDate(taskId, targetDate)
+      const result = taskService.moveTaskToDate(taskId, targetDate)
 
       expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
       expect(statements.insertTaskSchedule.run).not.toHaveBeenCalled()
@@ -901,7 +904,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.moveTaskToDate(taskId, targetDate)
+      const result = taskService.moveTaskToDate(taskId, targetDate)
 
       expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
       expect(statements.insertTaskSchedule.run).not.toHaveBeenCalled()
@@ -917,7 +920,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.moveTaskToDate(taskId, targetDate)
+      const result = taskService.moveTaskToDate(taskId, targetDate)
 
       expect(statements.deleteTaskSchedule.run).toHaveBeenCalledWith(taskId)
       expect(statements.insertTaskSchedule.run).toHaveBeenCalledWith(
@@ -946,7 +949,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.updateTaskSchedule(scheduleId, updates)
+      const result = taskService.updateTaskSchedule(scheduleId, updates)
 
       expect(runTransaction).toHaveBeenCalledWith(expect.any(Function))
       expect(statements.updateTaskSchedule.run).toHaveBeenCalledWith(
@@ -970,7 +973,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.updateTaskSchedule(scheduleId, updates)
+      const result = taskService.updateTaskSchedule(scheduleId, updates)
 
       expect(statements.updateTaskSchedule.run).toHaveBeenCalledWith(
         '10:00',
@@ -993,7 +996,7 @@ describe('TaskService', () => {
         return callback()
       })
 
-      const result = TaskService.updateTaskSchedule(scheduleId, updates)
+      const result = taskService.updateTaskSchedule(scheduleId, updates)
 
       expect(result).toBe(false)
     })
@@ -1032,7 +1035,7 @@ describe('TaskService', () => {
       
       ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.checkTimeConflicts(date, startTime, endTime)
+      const result = taskService.checkTimeConflicts(date, startTime, endTime)
 
       expect(statements.getScheduleByDate.all).toHaveBeenCalledWith(date)
       expect(result).toBe(false)
@@ -1059,7 +1062,7 @@ describe('TaskService', () => {
       
       ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.checkTimeConflicts(date, startTime, endTime)
+      const result = taskService.checkTimeConflicts(date, startTime, endTime)
 
       expect(result).toBe(true)
     })
@@ -1086,7 +1089,7 @@ describe('TaskService', () => {
       
       ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.checkTimeConflicts(date, startTime, endTime, excludeTaskId)
+      const result = taskService.checkTimeConflicts(date, startTime, endTime, excludeTaskId)
 
       expect(result).toBe(false)
     })
@@ -1112,7 +1115,7 @@ describe('TaskService', () => {
       
       ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
 
-      const result = TaskService.checkTimeConflicts(date, startTime, endTime)
+      const result = taskService.checkTimeConflicts(date, startTime, endTime)
 
       expect(result).toBe(false)
     })
@@ -1137,14 +1140,14 @@ describe('TaskService', () => {
       ;(statements.getScheduleByDate.all as jest.Mock).mockReturnValue(mockSchedules)
 
       // 直前の時間帯（競合なし）
-      expect(TaskService.checkTimeConflicts(date, '08:00', '09:00')).toBe(false)
+      expect(taskService.checkTimeConflicts(date, '08:00', '09:00')).toBe(false)
       
       // 直後の時間帯（競合なし）
-      expect(TaskService.checkTimeConflicts(date, '11:00', '12:00')).toBe(false)
+      expect(taskService.checkTimeConflicts(date, '11:00', '12:00')).toBe(false)
       
       // 1分だけ重複（競合あり）
-      expect(TaskService.checkTimeConflicts(date, '08:59', '09:01')).toBe(true)
-      expect(TaskService.checkTimeConflicts(date, '10:59', '11:01')).toBe(true)
+      expect(taskService.checkTimeConflicts(date, '08:59', '09:01')).toBe(true)
+      expect(taskService.checkTimeConflicts(date, '10:59', '11:01')).toBe(true)
     })
   })
 })

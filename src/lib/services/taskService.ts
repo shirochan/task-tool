@@ -1,10 +1,10 @@
 import { statements, runTransaction } from '../database/db';
-import { Task, TaskInput, TaskScheduleWithTask, AIEstimate, AIEstimateInput } from '../types';
+import { Task, TaskInput, TaskScheduleWithTask, AIEstimate, AIEstimateInput, UserSetting, CustomCategory, CustomCategoryInput } from '../types';
 import { getISOWeekDates } from '../utils';
 
 export class TaskService {
   // タスク管理
-  static createTask(taskInput: TaskInput): Task {
+  createTask(taskInput: TaskInput): Task {
     const result = statements.insertTask.run(
       taskInput.title,
       taskInput.description || null,
@@ -16,15 +16,15 @@ export class TaskService {
     return statements.getTaskById.get(result.lastInsertRowid) as Task;
   }
 
-  static getTaskById(id: number): Task | null {
+  getTaskById(id: number): Task | null {
     return statements.getTaskById.get(id) as Task | null;
   }
 
-  static getAllTasks(): Task[] {
+  getAllTasks(): Task[] {
     return statements.getAllTasks.all() as Task[];
   }
 
-  static updateTask(id: number, taskInput: Partial<TaskInput>): Task | null {
+  updateTask(id: number, taskInput: Partial<TaskInput>): Task | null {
     const existingTask = statements.getTaskById.get(id) as Task | null;
     if (!existingTask) return null;
 
@@ -40,26 +40,26 @@ export class TaskService {
     return statements.getTaskById.get(id) as Task;
   }
 
-  static deleteTask(id: number): boolean {
+  deleteTask(id: number): boolean {
     const result = statements.deleteTask.run(id);
     return result.changes > 0;
   }
 
   // スケジュール管理
-  static createTaskSchedule(taskId: number, dayOfWeek: number, startTime: string, endTime: string, scheduledDate: string): void {
+  createTaskSchedule(taskId: number, dayOfWeek: number, startTime: string, endTime: string, scheduledDate: string): void {
     statements.insertTaskSchedule.run(taskId, dayOfWeek, startTime, endTime, scheduledDate);
   }
 
-  static getScheduleByDate(date: string): TaskScheduleWithTask[] {
+  getScheduleByDate(date: string): TaskScheduleWithTask[] {
     return statements.getScheduleByDate.all(date) as TaskScheduleWithTask[];
   }
 
-  static getWeeklySchedule(startDate: string, endDate: string): TaskScheduleWithTask[] {
+  getWeeklySchedule(startDate: string, endDate: string): TaskScheduleWithTask[] {
     return statements.getWeeklySchedule.all(startDate, endDate) as TaskScheduleWithTask[];
   }
 
   // AI見積もり管理
-  static createAIEstimate(estimate: AIEstimateInput): AIEstimate {
+  createAIEstimate(estimate: AIEstimateInput): AIEstimate {
     statements.insertAIEstimate.run(
       estimate.task_id,
       estimate.estimated_hours,
@@ -71,17 +71,17 @@ export class TaskService {
     return statements.getLatestEstimate.get(estimate.task_id) as AIEstimate;
   }
 
-  static getLatestEstimate(taskId: number): AIEstimate | null {
+  getLatestEstimate(taskId: number): AIEstimate | null {
     return statements.getLatestEstimate.get(taskId) as AIEstimate | null;
   }
 
   // 週間スケジュールクリア
-  static clearWeeklySchedule(startDate: string, endDate: string): void {
+  clearWeeklySchedule(startDate: string, endDate: string): void {
     statements.clearWeeklySchedule.run(startDate, endDate);
   }
 
   // トランザクション内でスケジュールを更新（原子性を保証）
-  static updateWeeklyScheduleAtomically(
+  updateWeeklyScheduleAtomically(
     startDate: string,
     endDate: string,
     scheduleData: Array<{ taskId: number; dayOfWeek: number; startTime: string; endTime: string; scheduledDate: string }>
@@ -104,7 +104,7 @@ export class TaskService {
   }
 
   // 週間スケジュール生成用のヘルパー関数
-  static generateWeeklySchedule(): { [key: string]: TaskScheduleWithTask[] } {
+  generateWeeklySchedule(): { [key: string]: TaskScheduleWithTask[] } {
     // 現在の週の月曜日から金曜日までの日付を取得
     const weekDates = getISOWeekDates();
 
@@ -118,7 +118,7 @@ export class TaskService {
   }
 
   // ドラッグ＆ドロップ用のタスク移動
-  static moveTaskToDate(taskId: number, targetDate: string, targetTime?: string): boolean {
+  moveTaskToDate(taskId: number, targetDate: string, targetTime?: string): boolean {
     return runTransaction(() => {
       // 既存のスケジュールを削除
       statements.deleteTaskSchedule.run(taskId);
@@ -154,7 +154,7 @@ export class TaskService {
   }
 
   // 個別スケジュールの更新
-  static updateTaskSchedule(scheduleId: number, updates: {
+  updateTaskSchedule(scheduleId: number, updates: {
     start_time?: string;
     end_time?: string;
     scheduled_date?: string;
@@ -171,7 +171,7 @@ export class TaskService {
   }
 
   // 時間競合チェック
-  static checkTimeConflicts(date: string, startTime: string, endTime: string, excludeTaskId?: number): boolean {
+  checkTimeConflicts(date: string, startTime: string, endTime: string, excludeTaskId?: number): boolean {
     const schedules = this.getScheduleByDate(date);
     
     for (const schedule of schedules) {
@@ -186,5 +186,62 @@ export class TaskService {
       }
     }
     return false; // 競合なし
+  }
+
+  // ユーザー設定管理
+  getAllSettings(): UserSetting[] {
+    return statements.getAllSettings.all() as UserSetting[];
+  }
+
+  getSetting(key: string): UserSetting | null {
+    return statements.getSetting.get(key) as UserSetting | null;
+  }
+
+  upsertSetting(key: string, value: string): UserSetting {
+    return runTransaction(() => {
+      statements.upsertSetting.run(key, value);
+      return statements.getSetting.get(key) as UserSetting;
+    });
+  }
+
+  deleteSetting(key: string): boolean {
+    const result = statements.deleteSetting.run(key);
+    return result.changes > 0;
+  }
+
+  // カスタムカテゴリ管理
+  getAllCategories(): CustomCategory[] {
+    return statements.getAllCategories.all() as CustomCategory[];
+  }
+
+  getCategoryById(id: number): CustomCategory | null {
+    return statements.getCategoryById.get(id) as CustomCategory | null;
+  }
+
+  createCategory(categoryInput: CustomCategoryInput): CustomCategory {
+    const result = statements.insertCategory.run(
+      categoryInput.name,
+      categoryInput.color || '#3b82f6'
+    );
+    
+    return statements.getCategoryById.get(result.lastInsertRowid) as CustomCategory;
+  }
+
+  updateCategory(id: number, categoryInput: CustomCategoryInput): CustomCategory | null {
+    const existingCategory = statements.getCategoryById.get(id) as CustomCategory | null;
+    if (!existingCategory) return null;
+
+    statements.updateCategory.run(
+      categoryInput.name,
+      categoryInput.color || existingCategory.color,
+      id
+    );
+
+    return statements.getCategoryById.get(id) as CustomCategory;
+  }
+
+  deleteCategory(id: number): boolean {
+    const result = statements.deleteCategory.run(id);
+    return result.changes > 0;
   }
 }

@@ -22,6 +22,12 @@ AI搭載のタスク管理と週間スケジュール作成ツールです。
 - 1日8時間の作業時間制限
 - ドラッグ＆ドロップでの調整（将来実装予定）
 
+### ⚙️ 設定管理機能
+- 作業時間設定（開始時刻・終了時刻・1日の作業時間）
+- カスタムカテゴリ管理（作成・編集・削除・色設定）
+- データバックアップ・エクスポート機能（JSON形式）
+- 設定の永続化とインポート・エクスポート
+
 ### 📱 レスポンシブデザイン
 - モバイル、タブレット、デスクトップ対応
 - Tailwind CSSによる美しいUI
@@ -131,6 +137,12 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 - ゴミ箱アイコンでタスクを削除
 - 優先度や進行状況を確認
 
+### 4. 設定の変更
+1. 右上の設定アイコンをクリック
+2. 作業時間設定で個人のスケジュールに合わせて調整
+3. カスタムカテゴリを作成・管理
+4. データのバックアップ・復元が可能
+
 ## API エンドポイント
 
 ### タスク管理
@@ -146,6 +158,22 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 ### スケジュール
 - `GET /api/schedule` - 週間スケジュール取得
 - `POST /api/schedule/generate` - スケジュール生成
+- `PUT /api/schedule/[id]` - スケジュール更新
+- `PUT /api/schedule/move` - タスクの移動
+
+### 設定管理
+- `GET /api/settings` - 設定取得
+- `POST /api/settings` - 設定保存
+
+### カテゴリ管理
+- `GET /api/categories` - カテゴリ取得
+- `POST /api/categories` - カテゴリ作成
+- `PUT /api/categories/[id]` - カテゴリ更新
+- `DELETE /api/categories/[id]` - カテゴリ削除
+
+### データ管理
+- `GET /api/backup` - データエクスポート
+- `POST /api/backup` - データインポート
 
 ## ビルドとデプロイ
 

@@ -38,8 +38,28 @@ CREATE TABLE IF NOT EXISTS ai_estimates (
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 );
 
+-- ユーザー設定テーブル
+CREATE TABLE IF NOT EXISTS user_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    setting_key TEXT NOT NULL UNIQUE,
+    value TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- カスタムカテゴリテーブル
+CREATE TABLE IF NOT EXISTS custom_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    color TEXT DEFAULT '#3b82f6',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- インデックス作成
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_task_schedules_day ON task_schedules(day_of_week);
 CREATE INDEX IF NOT EXISTS idx_task_schedules_date ON task_schedules(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_user_settings_key ON user_settings(setting_key);
+CREATE INDEX IF NOT EXISTS idx_custom_categories_name ON custom_categories(name);
