@@ -9,24 +9,47 @@ import { defaultTestTasks } from '@/test-utils/testData'
 
 // TaskServiceのモック
 jest.mock('@/lib/services/taskService', () => ({
-  TaskService: {
+  TaskService: jest.fn().mockImplementation(() => ({
     getAllTasks: jest.fn(),
     createTask: jest.fn(),
     getTaskById: jest.fn(),
     updateTask: jest.fn(),
     deleteTask: jest.fn(),
-  },
+  })),
 }))
 
+// Mock variables scoped globally for both describe blocks
+let mockGetAllTasks: jest.Mock
+let mockCreateTask: jest.Mock
+let mockGetTaskById: jest.Mock
+let mockUpdateTask: jest.Mock
+let mockDeleteTask: jest.Mock
+
+async function setupMocks() {
+  mockGetAllTasks = jest.fn()
+  mockCreateTask = jest.fn()
+  mockGetTaskById = jest.fn()
+  mockUpdateTask = jest.fn()
+  mockDeleteTask = jest.fn()
+  
+  const { TaskService } = await import('@/lib/services/taskService')
+  ;(TaskService as jest.Mock).mockImplementation(() => ({
+    getAllTasks: mockGetAllTasks,
+    createTask: mockCreateTask,
+    getTaskById: mockGetTaskById,
+    updateTask: mockUpdateTask,
+    deleteTask: mockDeleteTask,
+  }))
+}
+
 describe('/api/tasks', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks()
+    await setupMocks()
   })
 
   describe('GET /api/tasks', () => {
     it('全てのタスクを取得できる', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockGetAllTasks = TaskService.getAllTasks as jest.Mock
       mockGetAllTasks.mockReturnValue(defaultTestTasks)
 
       const response = await GET()
@@ -41,8 +64,6 @@ describe('/api/tasks', () => {
     })
 
     it('空の配列でも正常に処理される', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockGetAllTasks = TaskService.getAllTasks as jest.Mock
       mockGetAllTasks.mockReturnValue([])
 
       const response = await GET()
@@ -56,8 +77,6 @@ describe('/api/tasks', () => {
 
   describe('POST /api/tasks', () => {
     it('新しいタスクを作成できる', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockCreateTask = TaskService.createTask as jest.Mock
 
       const newTaskInput = {
         title: '新しいタスク',
@@ -96,8 +115,6 @@ describe('/api/tasks', () => {
     })
 
     it('必須フィールドが不足している場合にもタスクが作成される（現在の実装）', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockCreateTask = TaskService.createTask as jest.Mock
 
       const invalidInput = {
         description: 'タイトルが不足しています',
@@ -133,8 +150,6 @@ describe('/api/tasks', () => {
     })
 
     it('不正なpriorityが指定された場合にもタスクが作成される（現在の実装）', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockCreateTask = TaskService.createTask as jest.Mock
 
       const invalidInput = {
         title: 'テストタスク',
@@ -172,14 +187,13 @@ describe('/api/tasks', () => {
 })
 
 describe('/api/tasks/[id]', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks()
+    await setupMocks()
   })
 
   describe('GET /api/tasks/[id]', () => {
     it('指定されたIDのタスクを取得できる', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockGetTaskById = TaskService.getTaskById as jest.Mock
       
       const targetTask = defaultTestTasks[0]
       mockGetTaskById.mockReturnValue(targetTask)
@@ -195,8 +209,6 @@ describe('/api/tasks/[id]', () => {
     })
 
     it('存在しないIDが指定された場合に404を返す', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockGetTaskById = TaskService.getTaskById as jest.Mock
       mockGetTaskById.mockReturnValue(null)
 
       const request = new NextRequest('http://localhost:3000/api/tasks/999')
@@ -220,8 +232,6 @@ describe('/api/tasks/[id]', () => {
 
   describe('PUT /api/tasks/[id]', () => {
     it('タスクを更新できる', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockUpdateTask = TaskService.updateTask as jest.Mock
 
       const updates = {
         title: '更新されたタスク',
@@ -252,8 +262,6 @@ describe('/api/tasks/[id]', () => {
     })
 
     it('存在しないタスクの更新時に404を返す', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockUpdateTask = TaskService.updateTask as jest.Mock
       mockUpdateTask.mockReturnValue(null)
 
       const updates = { title: '存在しないタスク' }
@@ -275,8 +283,6 @@ describe('/api/tasks/[id]', () => {
 
   describe('DELETE /api/tasks/[id]', () => {
     it('タスクを削除できる', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockDeleteTask = TaskService.deleteTask as jest.Mock
       mockDeleteTask.mockReturnValue(true)
 
       const request = new NextRequest('http://localhost:3000/api/tasks/1', {
@@ -292,8 +298,6 @@ describe('/api/tasks/[id]', () => {
     })
 
     it('存在しないタスクの削除時に404を返す', async () => {
-      const { TaskService } = await import('@/lib/services/taskService')
-      const mockDeleteTask = TaskService.deleteTask as jest.Mock
       mockDeleteTask.mockReturnValue(false)
 
       const request = new NextRequest('http://localhost:3000/api/tasks/999', {

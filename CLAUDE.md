@@ -94,7 +94,7 @@ This is a Japanese-language AI-powered task management application built with Ne
 tasks: id, title, description, priority ('must'|'want'), category, estimated_hours, status, timestamps
 task_schedules: task_id, day_of_week (1-5), start_time, end_time, scheduled_date
 ai_estimates: task_id, estimated_hours, confidence_score, reasoning, questions_asked
-user_settings: id, key, value, timestamps
+user_settings: id, setting_key, value, timestamps
 custom_categories: id, name, color, timestamps
 ```
 

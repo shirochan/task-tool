@@ -37,8 +37,8 @@ export function Settings({ onClose }: SettingsProps) {
         const settings = await response.json();
         
         // 設定値を画面に反映
-        settings.forEach((setting: { key: string; value: string }) => {
-          switch (setting.key) {
+        settings.forEach((setting: { setting_key: string; value: string }) => {
+          switch (setting.setting_key) {
             case 'work_start_time':
               setWorkStartTime(setting.value);
               break;
@@ -77,7 +77,7 @@ export function Settings({ onClose }: SettingsProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ key, value }),
+        body: JSON.stringify({ setting_key: key, value }),
       });
     } catch (error) {
       console.error('設定の保存に失敗しました:', error);
@@ -328,7 +328,7 @@ export function Settings({ onClose }: SettingsProps) {
                   placeholder="新しいカテゴリ名"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  onKeyPress={(e) => e.key === 'Enter' && handleCreateCategory()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
                 />
                 <Input
                   type="color"
