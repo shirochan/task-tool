@@ -55,7 +55,7 @@ docker compose down
 
 ## Architecture Overview
 
-This is a Japanese-language AI-powered task management application built with Next.js 15 App Router. The application combines traditional task management with AI-driven work estimation and automatic weekly schedule generation.
+This is a Japanese-language AI-powered task management application built with Next.js 15 App Router. The application combines traditional task management with AI-driven work estimation, automatic weekly schedule generation, and comprehensive settings management for personal productivity.
 
 ### Core Technology Stack
 - **Frontend**: Next.js 15 (App Router) + TypeScript + Tailwind CSS
@@ -75,24 +75,27 @@ This is a Japanese-language AI-powered task management application built with Ne
    - shadcn/ui components for consistent UI
 
 2. **Business Logic Layer** (`src/lib/services/`)
-   - `TaskService`: Task CRUD operations and scheduling logic
+   - `TaskService`: Task CRUD operations, scheduling logic, settings management, and category management
    - `AIService`: OpenAI integration with fallback mechanisms
 
 3. **Data Access Layer** (`src/lib/database/`)
    - SQLite database with prepared statements
    - Lazy initialization pattern for database connections
-   - Three main tables: tasks, task_schedules, ai_estimates
+   - Five main tables: tasks, task_schedules, ai_estimates, user_settings, custom_categories
 
 #### Key Components
-- **TaskManager**: Main orchestrating component with tab navigation (tasks vs schedule view)
+- **TaskManager**: Main orchestrating component with tab navigation (tasks vs schedule view) and settings access
 - **TaskForm**: Handles task creation/editing with integrated AI estimation
 - **WeeklySchedule**: Calendar visualization with automatic task allocation
+- **Settings**: Comprehensive settings management for work hours, custom categories, and data backup
 
 #### Database Schema
 ```sql
 tasks: id, title, description, priority ('must'|'want'), category, estimated_hours, status, timestamps
 task_schedules: task_id, day_of_week (1-5), start_time, end_time, scheduled_date
 ai_estimates: task_id, estimated_hours, confidence_score, reasoning, questions_asked
+user_settings: id, key, value, timestamps
+custom_categories: id, name, color, timestamps
 ```
 
 #### API Routes Structure
@@ -101,6 +104,12 @@ ai_estimates: task_id, estimated_hours, confidence_score, reasoning, questions_a
 - `/api/estimate` - AI-powered work estimation
 - `/api/schedule` - Weekly schedule management
 - `/api/schedule/generate` - Automatic schedule generation
+- `/api/schedule/[id]` - Individual schedule updates
+- `/api/schedule/move` - Task movement between dates
+- `/api/settings` - User settings management
+- `/api/categories` - Custom category management
+- `/api/categories/[id]` - Individual category operations
+- `/api/backup` - Data backup and restore functionality
 
 ### Key Patterns and Conventions
 
@@ -108,6 +117,7 @@ ai_estimates: task_id, estimated_hours, confidence_score, reasoning, questions_a
 - **Lazy initialization**: Database connections are created only when needed
 - **Prepared statements**: All database queries use prepared statements through getter methods
 - **Graceful handling**: Database operations include proper error handling and logging
+- **Instance methods**: TaskService uses instance methods for better testability and consistency
 
 #### AI Integration Patterns
 - **Fallback strategy**: OpenAI API failures gracefully fall back to mock estimation logic
@@ -124,6 +134,7 @@ ai_estimates: task_id, estimated_hours, confidence_score, reasoning, questions_a
 - **Design system**: shadcn/ui components provide consistent design patterns
 - **Responsive design**: Mobile-first approach with proper breakpoints
 - **Japanese localization**: All UI text is in Japanese
+- **Modal patterns**: Settings and forms use consistent modal overlay patterns
 
 ### Development Guidelines
 
@@ -131,6 +142,8 @@ ai_estimates: task_id, estimated_hours, confidence_score, reasoning, questions_a
 - Database initialization happens automatically on first access
 - Use the `TaskService` class methods rather than direct database access
 - The database file is created in `data/tasks.db` and should be gitignored
+- Settings are managed through key-value pairs in the `user_settings` table
+- Custom categories support color customization and are managed through dedicated endpoints
 
 #### AI Integration
 - Set `OPENAI_API_KEY` in `.env.local` for full AI functionality
@@ -148,6 +161,8 @@ ai_estimates: task_id, estimated_hours, confidence_score, reasoning, questions_a
 - Follow the existing prop patterns and TypeScript interfaces
 - Maintain responsive design principles
 - Include proper error states and loading indicators
+- Settings components should use modal patterns for consistent UX
+- Form components should include proper validation and error handling
 
 ### Environment Setup
 

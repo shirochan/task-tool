@@ -86,3 +86,41 @@ export const DAYS_OF_WEEK = {
 } as const;
 
 export type DayOfWeek = keyof typeof DAYS_OF_WEEK;
+
+// ユーザー設定関連の型定義
+export interface UserSetting {
+  id: number;
+  key: string;
+  value: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSettings {
+  work_start_time: string;
+  work_end_time: string;
+  daily_work_hours: number;
+  theme: 'light' | 'dark' | 'system';
+  compact_view: boolean;
+  ai_enabled: boolean;
+  notification_enabled: boolean;
+}
+
+export interface UserSettingInput {
+  key: string;
+  value: string;
+}
+
+// カスタムカテゴリ関連の型定義
+export interface CustomCategory {
+  id: number;
+  name: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomCategoryInput {
+  name: string;
+  color?: string;
+}

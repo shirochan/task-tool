@@ -76,7 +76,8 @@ export async function PUT(
     }
 
     // スケジュールの更新
-    const success = TaskService.updateTaskSchedule(scheduleId, {
+    const taskService = new TaskService();
+    const success = taskService.updateTaskSchedule(scheduleId, {
       start_time,
       end_time,
       scheduled_date
