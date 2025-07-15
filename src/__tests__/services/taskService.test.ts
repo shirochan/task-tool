@@ -64,7 +64,8 @@ describe('TaskService', () => {
         taskInput.description,
         taskInput.priority,
         taskInput.category,
-        taskInput.estimated_hours
+        taskInput.estimated_hours,
+        'pending'
       )
       expect(statements.getTaskById.get).toHaveBeenCalledWith(1)
       expect(result).toEqual(mockTask)
@@ -100,7 +101,8 @@ describe('TaskService', () => {
         null,
         taskInput.priority,
         null,
-        null
+        null,
+        'pending'
       )
       expect(result).toEqual(mockTask)
     })
@@ -226,6 +228,7 @@ describe('TaskService', () => {
         'must',
         'テスト',
         3,
+        'pending',
         1
       )
       expect(result).toEqual(updatedTask)
@@ -277,6 +280,7 @@ describe('TaskService', () => {
         'want',
         'テスト',
         1,
+        'pending',
         1
       )
       expect(result).toEqual(updatedTask)

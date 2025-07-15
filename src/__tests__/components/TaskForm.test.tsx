@@ -110,6 +110,7 @@ describe('TaskForm', () => {
           priority: 'want',
           category: 'テスト',
           estimated_hours: 3,
+          status: 'pending',
         }),
       })
       expect(mockOnTaskCreated).toHaveBeenCalledWith(mockResponse)
@@ -147,6 +148,7 @@ describe('TaskForm', () => {
           priority: 'must',
           category: 'テスト',
           estimated_hours: 2,
+          status: 'pending',
         }),
       })
       expect(mockOnTaskUpdated).toHaveBeenCalledWith(mockResponse)

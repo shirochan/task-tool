@@ -10,7 +10,8 @@ export class TaskService {
       taskInput.description || null,
       taskInput.priority,
       taskInput.category || null,
-      taskInput.estimated_hours || null
+      taskInput.estimated_hours || null,
+      taskInput.status || 'pending'
     );
     
     return statements.getTaskById.get(result.lastInsertRowid) as Task;
@@ -26,14 +27,26 @@ export class TaskService {
 
   updateTask(id: number, taskInput: Partial<TaskInput>): Task | null {
     const existingTask = statements.getTaskById.get(id) as Task | null;
-    if (!existingTask) return null;
+    if (!existingTask) {
+      return null;
+    }
+
+    const updateData = {
+      title: taskInput.title ?? existingTask.title,
+      description: taskInput.description ?? existingTask.description,
+      priority: taskInput.priority ?? existingTask.priority,
+      category: taskInput.category ?? existingTask.category,
+      estimated_hours: taskInput.estimated_hours ?? existingTask.estimated_hours,
+      status: taskInput.status ?? existingTask.status,
+    };
 
     statements.updateTask.run(
-      taskInput.title ?? existingTask.title,
-      taskInput.description ?? existingTask.description,
-      taskInput.priority ?? existingTask.priority,
-      taskInput.category ?? existingTask.category,
-      taskInput.estimated_hours ?? existingTask.estimated_hours,
+      updateData.title,
+      updateData.description,
+      updateData.priority,
+      updateData.category,
+      updateData.estimated_hours,
+      updateData.status,
       id
     );
 
