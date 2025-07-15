@@ -233,7 +233,7 @@ export function TaskManager() {
       )}
 
       {activeTab === 'schedule' && (
-        <WeeklySchedule tasks={tasks} />
+        <WeeklySchedule tasks={tasks} onTaskUpdate={handleTaskUpdated} />
       )}
 
       {/* 設定モーダル */}

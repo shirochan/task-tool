@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, RefreshCw, GripVertical } from 'lucide-react';
 import { Task, TaskScheduleWithTask, DAYS_OF_WEEK } from '@/lib/types';
 import { getISOWeekDates } from '@/lib/utils';
+import { TaskDetail } from '@/components/TaskDetail';
 import {
   DndContext,
   DragOverlay,
@@ -25,6 +26,7 @@ import { snapCenterToCursor } from '@dnd-kit/modifiers';
 
 interface WeeklyScheduleProps {
   tasks: Task[];
+  onTaskUpdate?: (task: Task) => void;
 }
 
 // ドラッグ可能なタスクカード
@@ -35,9 +37,10 @@ interface DraggableTaskProps {
     totalHours?: number;
   };
   isDragging?: boolean;
+  onTaskClick?: (task: Task) => void;
 }
 
-function DraggableTask({ task, isDragging = false }: DraggableTaskProps) {
+function DraggableTask({ task, isDragging = false, onTaskClick }: DraggableTaskProps) {
   const {
     attributes,
     listeners,
@@ -75,7 +78,31 @@ function DraggableTask({ task, isDragging = false }: DraggableTaskProps) {
           >
             <GripVertical className="w-3 h-3" />
           </div>
-          <div className="flex-1">
+          <div 
+            className="flex-1 cursor-pointer hover:bg-gray-200 rounded p-1 -m-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              const taskForDetail = {
+                id: task.task_id,
+                title: task.title,
+                description: task.description,
+                priority: task.priority,
+                category: task.category,
+                estimated_hours: task.estimated_hours,
+                actual_hours: task.actual_hours,
+                status: task.status,
+                created_at: task.created_at,
+                updated_at: task.updated_at
+              };
+              // console.log('WeeklySchedule - スケジュール済みタスククリック (継続):', { 
+              //   originalTask: task, 
+              //   taskForDetail,
+              //   originalStatus: task.status,
+              //   originalCategory: task.category 
+              // });
+              onTaskClick?.(taskForDetail);
+            }}
+          >
             <div className="text-xs text-gray-600 italic">
               {task.title} (継続中)
             </div>
@@ -103,7 +130,31 @@ function DraggableTask({ task, isDragging = false }: DraggableTaskProps) {
         >
           <GripVertical className="w-4 h-4" />
         </div>
-        <div className="flex-1">
+        <div 
+          className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            const taskForDetail = {
+              id: task.task_id,
+              title: task.title,
+              description: task.description,
+              priority: task.priority,
+              category: task.category,
+              estimated_hours: task.estimated_hours,
+              actual_hours: task.actual_hours,
+              status: task.status,
+              created_at: task.created_at,
+              updated_at: task.updated_at
+            };
+            // console.log('WeeklySchedule - スケジュール済みタスククリック (メイン):', { 
+            //   originalTask: task, 
+            //   taskForDetail,
+            //   originalStatus: task.status,
+            //   originalCategory: task.category 
+            // });
+            onTaskClick?.(taskForDetail);
+          }}
+        >
           <div className="font-medium text-sm mb-1">
             {task.title}
             {task.totalHours && task.totalHours > 1 && (
@@ -177,9 +228,10 @@ interface DroppableDayProps {
   getDateLabel: (date: string) => string;
   getTotalHours: (date: string) => number;
   activeId: string | null;
+  onTaskClick?: (task: Task) => void;
 }
 
-function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activeId }: DroppableDayProps) {
+function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activeId, onTaskClick }: DroppableDayProps) {
   // 1時間単位の時間スロットを生成（0:00-23:00）
   const timeSlots = Array.from({ length: 24 }, (_, i) => {
     return `${i.toString().padStart(2, '0')}:00`;
@@ -260,6 +312,7 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
                   key={`${task.task_id}-${task.id}-${time}`}
                   task={task}
                   isDragging={activeId === `task-${task.task_id}`}
+                  onTaskClick={onTaskClick}
                 />
               ))}
             </DroppableTimeSlot>
@@ -273,9 +326,10 @@ function DroppableDay({ date, scheduledTasks, getDateLabel, getTotalHours, activ
 // ドラッグ可能な未スケジュールタスク
 interface DraggableUnscheduledTaskProps {
   task: Task;
+  onTaskClick?: (task: Task) => void;
 }
 
-function DraggableUnscheduledTask({ task }: DraggableUnscheduledTaskProps) {
+function DraggableUnscheduledTask({ task, onTaskClick }: DraggableUnscheduledTaskProps) {
   const {
     attributes,
     listeners,
@@ -311,10 +365,19 @@ function DraggableUnscheduledTask({ task }: DraggableUnscheduledTaskProps) {
         >
           <GripVertical className="w-4 h-4" />
         </div>
-        <span className="font-medium">{task.title}</span>
-        <Badge className={getPriorityColor(task.priority)}>
-          {task.priority === 'must' ? '必須' : '希望'}
-        </Badge>
+        <div 
+          className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            // console.log('WeeklySchedule - 未スケジュールタスククリック:', task);
+            onTaskClick?.(task);
+          }}
+        >
+          <span className="font-medium">{task.title}</span>
+          <Badge className={getPriorityColor(task.priority)}>
+            {task.priority === 'must' ? '必須' : '希望'}
+          </Badge>
+        </div>
       </div>
       {task.estimated_hours && (
         <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -326,13 +389,15 @@ function DraggableUnscheduledTask({ task }: DraggableUnscheduledTaskProps) {
   );
 }
 
-export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
+export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
   const [weeklySchedule, setWeeklySchedule] = useState<{[key: string]: TaskScheduleWithTask[]}>({});
   const [currentWeek, setCurrentWeek] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<TaskScheduleWithTask | Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
 
   // ドラッグ&ドロップ用のセンサー設定
   const sensors = useSensors(
@@ -495,6 +560,26 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
     return tasks.filter(task => !scheduledTaskIds.has(task.id));
   };
 
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsTaskDetailOpen(true);
+  };
+
+  const handleTaskUpdate = (updatedTask: Task) => {
+    onTaskUpdate?.(updatedTask);
+    // 選択されたタスクも更新
+    if (selectedTask && selectedTask.id === updatedTask.id) {
+      setSelectedTask(updatedTask);
+    }
+    // スケジュールを再取得
+    fetchWeeklySchedule();
+  };
+
+  const handleTaskDetailClose = () => {
+    setIsTaskDetailOpen(false);
+    setSelectedTask(null);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-64">
@@ -557,7 +642,11 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
           <CardContent>
             <div className="space-y-2">
               {getUnscheduledTasks().map((task) => (
-                <DraggableUnscheduledTask key={task.id} task={task} />
+                <DraggableUnscheduledTask 
+                  key={task.id} 
+                  task={task} 
+                  onTaskClick={handleTaskClick}
+                />
               ))}
             </div>
           </CardContent>
@@ -574,6 +663,7 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
             getDateLabel={getDateLabel}
             getTotalHours={getTotalHours}
             activeId={activeId}
+            onTaskClick={handleTaskClick}
           />
         ))}
       </div>
@@ -592,6 +682,14 @@ export function WeeklySchedule({ tasks }: WeeklyScheduleProps) {
         </Card>
       )}
       </div>
+      
+      {/* タスク詳細ダイアログ */}
+      <TaskDetail
+        task={selectedTask}
+        isOpen={isTaskDetailOpen}
+        onClose={handleTaskDetailClose}
+        onUpdate={handleTaskUpdate}
+      />
       
       {/* ドラッグオーバーレイ */}
       <DragOverlay modifiers={[snapCenterToCursor]}>
