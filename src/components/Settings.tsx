@@ -300,7 +300,7 @@ export function Settings({ onClose }: SettingsProps) {
                   placeholder="新しいカテゴリ名"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  onKeyPress={(e) => e.key === 'Enter' && handleCreateCategory()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
                 />
                 <Input
                   type="color"

@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     // 設定を復元
     if (backupData.data.settings) {
       for (const setting of backupData.data.settings) {
-        taskService.upsertSetting(setting.key, setting.value);
+        taskService.upsertSetting(setting.setting_key, setting.value);
       }
     }
     
@@ -101,12 +101,28 @@ export async function POST(request: Request) {
       }
     }
     
+    // スケジュールを復元
+    const restoredSchedules = 0;
+    if (backupData.data.schedules) {
+      for (const schedule of backupData.data.schedules) {
+        try {
+          // スケジュールにはtask_idが含まれているが、復元時は新しいIDが割り当てられる
+          // タスクタイトルでマッチングするか、またはスケジュールは手動で再作成してもらう
+          // 今回は安全のため、スケジュールの復元は将来の機能として保留
+          console.log(`Schedule for date ${schedule.scheduled_date} found, but schedule restoration requires task ID mapping`);
+        } catch (error) {
+          console.warn(`Failed to restore schedule for date: ${schedule.scheduled_date}`, error);
+        }
+      }
+    }
+    
     return NextResponse.json({
       message: 'バックアップからの復元が完了しました',
       restored: {
         tasks: restoredTasks,
         settings: backupData.data.settings?.length || 0,
-        categories: backupData.data.categories?.length || 0
+        categories: backupData.data.categories?.length || 0,
+        schedules: restoredSchedules
       }
     });
     

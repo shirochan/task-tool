@@ -90,7 +90,7 @@ export type DayOfWeek = keyof typeof DAYS_OF_WEEK;
 // ユーザー設定関連の型定義
 export interface UserSetting {
   id: number;
-  key: string;
+  setting_key: string;
   value: string;
   created_at: string;
   updated_at: string;
@@ -107,7 +107,7 @@ export interface UserSettings {
 }
 
 export interface UserSettingInput {
-  key: string;
+  setting_key: string;
   value: string;
 }
 
