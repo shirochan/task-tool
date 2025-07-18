@@ -328,7 +328,7 @@ export function Settings({ onClose }: SettingsProps) {
                   placeholder="新しいカテゴリ名"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
+                  onKeyDown={(e) => e.key === 'Enter' && !(e.nativeEvent as any)?.isComposing && handleCreateCategory()} // eslint-disable-line @typescript-eslint/no-explicit-any
                 />
                 <Input
                   type="color"
