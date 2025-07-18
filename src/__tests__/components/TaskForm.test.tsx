@@ -193,6 +193,95 @@ describe('TaskForm', () => {
 
     // 見積もり時間がフォームに入力されることを確認
     expect(screen.getByDisplayValue('3.5')).toBeInTheDocument()
+    
+    // タイトルがチャットメッセージから自動入力されることを確認
+    expect(screen.getByDisplayValue('プレゼンテーション資料作成')).toBeInTheDocument()
+  })
+
+  it('タイトルが既に入力されている場合は上書きしない', async () => {
+    const user = userEvent.setup()
+    
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ 
+        estimated_hours: 2, 
+        hours: 2, 
+        reasoning: 'テスト用の理由', 
+        questions: [] 
+      }),
+    })
+
+    render(<TaskForm {...defaultProps} />)
+
+    // 先にタイトルを入力
+    const titleInput = screen.getByLabelText(/タイトル/)
+    await user.type(titleInput, '既存のタイトル')
+
+    // AI相談タブに切り替え
+    await user.click(screen.getByRole('tab', { name: /AI相談/ }))
+
+    // チャットでメッセージを送信
+    const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
+    await user.type(chatInput, '新しいタスク内容')
+    await user.click(screen.getByRole('button', { name: /送信|メッセージを送信/ }))
+
+    // 見積もり結果が表示されるまで待機
+    await waitFor(() => {
+      expect(screen.getByText(/見積もり結果: 2時間/)).toBeInTheDocument()
+    })
+
+    // フォームに反映ボタンをクリック
+    await user.click(screen.getByRole('button', { name: /フォームに反映/ }))
+
+    // タスクフォームタブに切り替わることを確認
+    await waitFor(() => {
+      expect(screen.getByRole('tabpanel', { name: /タスクフォーム/ })).toBeVisible()
+    })
+
+    // 既存のタイトルが保持されることを確認
+    expect(screen.getByDisplayValue('既存のタイトル')).toBeInTheDocument()
+  })
+
+  it('長いメッセージがタイトルに設定される場合は50文字で切り詰める', async () => {
+    const user = userEvent.setup()
+    
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ 
+        estimated_hours: 1, 
+        hours: 1, 
+        reasoning: 'テスト用の理由', 
+        questions: [] 
+      }),
+    })
+
+    render(<TaskForm {...defaultProps} />)
+
+    // AI相談タブに切り替え
+    await user.click(screen.getByRole('tab', { name: /AI相談/ }))
+
+    // 長いメッセージを送信
+    const longMessage = 'これは非常に長いメッセージです。タイトルとして使用されるときは50文字で切り詰められるはずです。この部分は切り詰められるでしょう。'
+    const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
+    await user.type(chatInput, longMessage)
+    await user.click(screen.getByRole('button', { name: /送信|メッセージを送信/ }))
+
+    // 見積もり結果が表示されるまで待機
+    await waitFor(() => {
+      expect(screen.getByText(/見積もり結果: 1時間/)).toBeInTheDocument()
+    })
+
+    // フォームに反映ボタンをクリック
+    await user.click(screen.getByRole('button', { name: /フォームに反映/ }))
+
+    // タスクフォームタブに切り替わることを確認
+    await waitFor(() => {
+      expect(screen.getByRole('tabpanel', { name: /タスクフォーム/ })).toBeVisible()
+    })
+
+    // 50文字で切り詰められたタイトルが設定されることを確認
+    const expectedTitle = longMessage.substring(0, 50)
+    expect(screen.getByDisplayValue(expectedTitle)).toBeInTheDocument()
   })
 
   it('優先度の選択が正常に動作する', async () => {

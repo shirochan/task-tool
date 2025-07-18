@@ -152,8 +152,17 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
       setValue('description', estimateDetails.reasoning);
     }
     
+    // チャットメッセージからタイトルを自動生成
+    const userMessages = chatMessages.filter(msg => msg.type === 'user');
+    if (userMessages.length > 0 && !watch('title')) {
+      const firstUserMessage = userMessages[0].content;
+      // メッセージの最初の50文字程度をタイトルとして使用
+      const title = firstUserMessage.split('\n')[0].substring(0, 50);
+      setValue('title', title);
+    }
+    
     setActiveTab('form');
-    toast.success('AI見積もりをフォームに反映しました');
+    toast.success('AI見積もりをフォームに反映しました（タイトル、説明、見積もり時間）');
   };
 
   const onSubmit = async (data: TaskFormData) => {
