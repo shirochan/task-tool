@@ -147,7 +147,7 @@ JSON以外の説明文は一切含めず、上記の形式のJSONのみで回答
       };
     } catch (error) {
       console.error('OpenAI API エラー:', error);
-      // エラーを再スローせず、エラーメッセージをそのまま返す
+      // エラーをログに記録し、再スローする
       throw error;
     }
   }
