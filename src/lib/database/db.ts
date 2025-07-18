@@ -236,6 +236,75 @@ export const statements = {
     return getDatabase().prepare(`
       DELETE FROM custom_categories WHERE id = ?
     `);
+  },
+
+  // AI相談履歴関連
+  get insertConsultationMessage() {
+    return getDatabase().prepare(`
+      INSERT INTO consultation_history (
+        session_id, message_type, content, consultation_type, 
+        confidence_score, metadata, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+  },
+
+  get getSessionHistory() {
+    return getDatabase().prepare(`
+      SELECT * FROM consultation_history 
+      WHERE session_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `);
+  },
+
+  get getRecentSessions() {
+    return getDatabase().prepare(`
+      SELECT 
+        session_id,
+        COUNT(*) as message_count,
+        MAX(created_at) as last_activity,
+        (SELECT content FROM consultation_history ch2 
+         WHERE ch2.session_id = ch.session_id 
+         ORDER BY created_at DESC LIMIT 1) as last_message
+      FROM consultation_history ch
+      GROUP BY session_id
+      ORDER BY last_activity DESC
+      LIMIT ?
+    `);
+  },
+
+  get deleteSession() {
+    return getDatabase().prepare(`
+      DELETE FROM consultation_history WHERE session_id = ?
+    `);
+  },
+
+  get cleanupOldHistory() {
+    return getDatabase().prepare(`
+      DELETE FROM consultation_history 
+      WHERE created_at < datetime('now', '-30 days')
+    `);
+  },
+
+  get getSessionStats() {
+    return getDatabase().prepare(`
+      SELECT 
+        COUNT(*) as message_count,
+        AVG(CASE WHEN confidence_score IS NOT NULL THEN confidence_score END) as avg_confidence,
+        MIN(created_at) as first_message,
+        MAX(created_at) as last_message
+      FROM consultation_history 
+      WHERE session_id = ?
+    `);
+  },
+
+  get getConsultationTypes() {
+    return getDatabase().prepare(`
+      SELECT consultation_type, COUNT(*) as count
+      FROM consultation_history 
+      WHERE session_id = ? AND message_type = 'ai'
+      GROUP BY consultation_type
+    `);
   }
 };
 

@@ -99,7 +99,7 @@ describe('AIService', () => {
       await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('AI見積もりの取得に失敗しました')
     })
 
-    it('不正なJSON応答の場合にエラーを投げる', async () => {
+    it('不正なJSON応答の場合にフォールバック値を返す', async () => {
       process.env.OPENAI_API_KEY = 'test-api-key'
 
       const mockResponse = {
@@ -114,7 +114,15 @@ describe('AIService', () => {
 
       mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('AI見積もりの取得に失敗しました')
+      const result = await AIService.estimateTask(mockRequest)
+      
+      expect(result).toEqual({
+        estimated_hours: 2,
+        hours: 2,
+        confidence_score: 0.5,
+        reasoning: 'AI応答の解析に失敗したため、デフォルト値を使用',
+        questions: ['より詳細な情報を提供していただけますか？'],
+      })
     })
 
     it('部分的に不正なJSON応答の場合にデフォルト値を使用する', async () => {
@@ -177,11 +185,11 @@ describe('AIService', () => {
       await AIService.estimateTask(mockRequest)
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: 'あなたは経験豊富なプロジェクトマネージャーです。タスクの工数見積もりを正確に行います。常にJSON形式で回答してください。',
+            content: 'あなたは経験豊富なプロジェクトマネージャーです。タスクの工数見積もりを正確に行います。必ず有効なJSON形式のみで回答してください。マークダウンのコードブロックは使用しないでください。',
           },
           {
             role: 'user',
@@ -190,6 +198,7 @@ describe('AIService', () => {
         ],
         temperature: 0.3,
         max_tokens: 500,
+        response_format: { type: "json_object" },
       })
     })
   })
@@ -367,11 +376,11 @@ describe('AIService', () => {
       await AIService.generateScheduleRecommendations(mockTasks)
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'あなたは効率的なスケジュール管理の専門家です。実践的で実行可能な提案を行います。',
+            content: 'あなたは効率的なスケジュール管理の専門家です。実践的で実行可能な提案を行います。必ず有効なJSON形式のみで回答してください。',
           },
           {
             role: 'user',
@@ -380,6 +389,7 @@ describe('AIService', () => {
         ],
         temperature: 0.4,
         max_tokens: 400,
+        response_format: { type: "json_object" },
       })
     })
 

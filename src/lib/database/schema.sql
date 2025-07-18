@@ -56,6 +56,18 @@ CREATE TABLE IF NOT EXISTS custom_categories (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- AI相談履歴テーブル
+CREATE TABLE IF NOT EXISTS consultation_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    message_type TEXT NOT NULL CHECK (message_type IN ('user', 'ai')),
+    content TEXT NOT NULL,
+    consultation_type TEXT DEFAULT 'general',
+    confidence_score REAL,
+    metadata TEXT, -- JSON形式でメタデータを保存
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- インデックス作成
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
@@ -63,3 +75,5 @@ CREATE INDEX IF NOT EXISTS idx_task_schedules_day ON task_schedules(day_of_week)
 CREATE INDEX IF NOT EXISTS idx_task_schedules_date ON task_schedules(scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_user_settings_key ON user_settings(setting_key);
 CREATE INDEX IF NOT EXISTS idx_custom_categories_name ON custom_categories(name);
+CREATE INDEX IF NOT EXISTS idx_consultation_session ON consultation_history(session_id);
+CREATE INDEX IF NOT EXISTS idx_consultation_type ON consultation_history(consultation_type);

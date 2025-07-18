@@ -150,3 +150,35 @@ export interface CustomCategoryInput {
   name: string;
   color?: string;
 }
+
+// AI相談機能用の型定義
+export interface ChatMessage {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  timestamp: Date;
+  metadata?: {
+    task_id?: number;
+    consultation_type?: string;
+    confidence_score?: number;
+  };
+}
+
+export interface ConsultationRequest {
+  message: string;
+  context?: {
+    current_tasks?: Task[];
+    user_preferences?: Record<string, unknown>;
+    conversation_history?: ChatMessage[];
+  };
+  consultation_type?: 'task_planning' | 'time_management' | 'productivity' | 'general';
+}
+
+export interface ConsultationResponse {
+  message: string;
+  suggestions?: string[];
+  follow_up_questions?: string[];
+  confidence_score?: number;
+  consultation_type: string;
+  metadata?: Record<string, unknown>;
+}
