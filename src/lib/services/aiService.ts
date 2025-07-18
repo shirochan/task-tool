@@ -1,6 +1,25 @@
 import OpenAI from 'openai';
 import { EstimateRequest, EstimateResponse, ConsultationRequest, ConsultationResponse } from '@/lib/types';
 
+// 定数定義
+const TASK_PRIORITY_LABELS = {
+  must: '必須（今週中に完了）',
+  want: '希望（できれば今週中）'
+} as const;
+
+const TASK_PRIORITY_SHORT_LABELS = {
+  must: '必須',
+  want: '希望'
+} as const;
+
+const DEFAULT_MESSAGES = {
+  AI_ESTIMATION_FAILED: 'AI推定',
+  PARSE_ERROR_REASON: 'AI応答の解析に失敗したため、デフォルト値を使用',
+  CONSULTATION_FAILED: 'AI相談の処理に失敗しました',
+  ANALYSIS_FAILED: '応答の解析に失敗しました',
+  RECOMMENDATION_FAILED: 'AI推奨事項の取得に失敗しました'
+} as const;
+
 function getOpenAIClient() {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OpenAI API key is not configured');
@@ -24,7 +43,7 @@ export class AIService {
 
 タスク名: ${task.title}
 詳細: ${task.description || 'なし'}
-優先度: ${task.priority === 'must' ? '必須（今週中に完了）' : '希望（できれば今週中）'}
+優先度: ${TASK_PRIORITY_LABELS[task.priority]}
 カテゴリ: ${task.category || 'なし'}
 
 以下の形式でJSONで回答してください：
@@ -85,11 +104,17 @@ JSON形式のみで回答してください。
           parsed.estimated_hours = 2;
         }
         
+        // 上限チェック: 非現実的な見積もりを防ぐ
+        if (parsed.estimated_hours > 1000) {
+          console.warn(`Unrealistic estimated_hours (${parsed.estimated_hours}), capping at 1000`);
+          parsed.estimated_hours = 1000;
+        }
+        
         return {
           estimated_hours: parsed.estimated_hours,
           hours: parsed.estimated_hours, // 下位互換性のため
           confidence_score: typeof parsed.confidence_score === 'number' ? parsed.confidence_score : 0.5,
-          reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : 'AI推定',
+          reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : DEFAULT_MESSAGES.AI_ESTIMATION_FAILED,
           questions: Array.isArray(parsed.questions) ? parsed.questions : [],
         };
       } catch (parseError) {
@@ -101,7 +126,7 @@ JSON形式のみで回答してください。
           estimated_hours: 2,
           hours: 2,
           confidence_score: 0.5,
-          reasoning: 'AI応答の解析に失敗したため、デフォルト値を使用',
+          reasoning: DEFAULT_MESSAGES.PARSE_ERROR_REASON,
           questions: ['より詳細な情報を提供していただけますか？'],
         };
       }
@@ -129,7 +154,7 @@ JSON形式のみで回答してください。
     }
 
     const tasksDescription = tasks.map(task => 
-      `- ${task.title} (${task.priority === 'must' ? '必須' : '希望'}, ${task.estimated_hours || '未見積もり'}時間): ${task.description || ''}`
+      `- ${task.title} (${TASK_PRIORITY_SHORT_LABELS[task.priority]}, ${task.estimated_hours || '未見積もり'}時間): ${task.description || ''}`
     ).join('\n');
 
     const prompt = `
@@ -203,14 +228,14 @@ JSON形式のみで回答してください。
         console.error('Failed to parse OpenAI response:', response);
         console.error('Parse error:', parseError);
         return {
-          recommendations: ['応答の解析に失敗しました'],
+          recommendations: [DEFAULT_MESSAGES.ANALYSIS_FAILED],
           optimizations: [],
         };
       }
     } catch (error) {
       console.error('OpenAI API error:', error);
       return {
-        recommendations: ['AI推奨事項の取得に失敗しました'],
+        recommendations: [DEFAULT_MESSAGES.RECOMMENDATION_FAILED],
         optimizations: [],
       };
     }
@@ -229,7 +254,7 @@ JSON形式のみで回答してください。
     
     const tasksContext = currentTasks.length > 0 
       ? `\n現在のタスク:\n${currentTasks.map(task => 
-          `- ${task.title} (${task.priority === 'must' ? '必須' : '希望'}, ${task.estimated_hours || '未見積もり'}時間): ${task.description || ''}`
+          `- ${task.title} (${TASK_PRIORITY_SHORT_LABELS[task.priority]}, ${task.estimated_hours || '未見積もり'}時間): ${task.description || ''}`
         ).join('\n')}`
       : '';
 

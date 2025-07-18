@@ -34,7 +34,7 @@ export class ConsultationService {
       content: row.content,
       timestamp: new Date(row.created_at),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined
-    })).reverse(); // 新しい順にして返す
+    })).reverse(); // 時系列順（古い順）に並び替えて返す
   }
 
   // 最近のセッション一覧を取得

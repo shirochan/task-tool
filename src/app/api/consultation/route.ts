@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ConsultationRequest, ChatMessage } from '@/lib/types';
 import { AIService } from '@/lib/services/aiService';
 import { ConsultationService } from '@/lib/services/consultationService';
+import { randomUUID } from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
     const body: ConsultationRequest & { sessionId?: string } = await request.json();
-    const { message, sessionId = `session_${Date.now()}` } = body;
+    const { message, sessionId = `session_${randomUUID()}` } = body;
 
     if (!message || message.trim().length === 0) {
       return NextResponse.json(
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // ユーザーメッセージを保存
     const userMessage: ChatMessage = {
-      id: `user_${Date.now()}`,
+      id: `user_${randomUUID()}`,
       type: 'user',
       content: message,
       timestamp: new Date(),
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // AI応答を保存
     const aiMessage: ChatMessage = {
-      id: `ai_${Date.now()}`,
+      id: `ai_${randomUUID()}`,
       type: 'ai',
       content: consultation.message,
       timestamp: new Date(),
