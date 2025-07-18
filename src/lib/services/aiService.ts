@@ -11,6 +11,53 @@ function getOpenAIClient() {
   });
 }
 
+// レスポンス検証ユーティリティ
+function validateEstimateResponse(parsed: unknown): { isValid: boolean; error?: string } {
+  // 型ガード: parsed が object であることを確認
+  if (typeof parsed !== 'object' || parsed === null) {
+    return { isValid: false, error: 'レスポンスはオブジェクトである必要があります' };
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  // 必須フィールドの存在確認
+  if (!('estimated_hours' in obj)) {
+    return { isValid: false, error: '必須フィールド "estimated_hours" が見つかりません' };
+  }
+  if (!('confidence_score' in obj)) {
+    return { isValid: false, error: '必須フィールド "confidence_score" が見つかりません' };
+  }
+  if (!('reasoning' in obj)) {
+    return { isValid: false, error: '必須フィールド "reasoning" が見つかりません' };
+  }
+
+  // 型検証
+  if (typeof obj.estimated_hours !== 'number' || isNaN(obj.estimated_hours)) {
+    return { isValid: false, error: '"estimated_hours" は数値である必要があります' };
+  }
+  if (typeof obj.confidence_score !== 'number' || isNaN(obj.confidence_score)) {
+    return { isValid: false, error: '"confidence_score" は数値である必要があります' };
+  }
+  if (typeof obj.reasoning !== 'string') {
+    return { isValid: false, error: '"reasoning" は文字列である必要があります' };
+  }
+
+  // 数値範囲の検証
+  if (obj.estimated_hours <= 0) {
+    return { isValid: false, error: '"estimated_hours" は正の数である必要があります' };
+  }
+  if (obj.confidence_score < 0 || obj.confidence_score > 1) {
+    return { isValid: false, error: '"confidence_score" は0から1の間である必要があります' };
+  }
+
+  // questionsの検証（任意フィールド）
+  if ('questions' in obj && obj.questions && !Array.isArray(obj.questions)) {
+    return { isValid: false, error: '"questions" は配列である必要があります' };
+  }
+
+  return { isValid: true };
+}
+
 export class AIService {
   static async estimateTask(request: EstimateRequest): Promise<EstimateResponse> {
     if (!process.env.OPENAI_API_KEY) {
@@ -19,21 +66,26 @@ export class AIService {
 
     const { task } = request;
     
-    const prompt = `
-タスクの見積もりをお願いします。以下のタスクについて、作業時間を推定してください。
+    const prompt = `以下のタスクについて、作業時間を推定してください。
 
 タスク名: ${task.title}
 詳細: ${task.description || 'なし'}
 優先度: ${task.priority === 'must' ? '必須（今週中に完了）' : '希望（できれば今週中）'}
 カテゴリ: ${task.category || 'なし'}
 
-以下の形式でJSONで回答してください：
+必ず以下の正確なJSON形式で回答してください：
 {
-  "estimated_hours": 推定時間（数値、0.5時間単位）,
-  "confidence_score": 信頼度（0.0〜1.0）,
-  "reasoning": "推定理由の説明",
-  "questions": ["より正確な見積もりのための質問1", "質問2"]
+  "estimated_hours": 2.5,
+  "confidence_score": 0.8,
+  "reasoning": "推定理由の詳細説明",
+  "questions": ["質問1", "質問2"]
 }
+
+重要な指示：
+- estimated_hours: 0.5時間単位の正の数値（例: 1.0, 2.5, 4.0）
+- confidence_score: 0.0から1.0の間の数値（例: 0.7）
+- reasoning: 推定理由の文字列（必須）
+- questions: 質問の配列（空配列でも可）
 
 推定する際の考慮事項：
 - 一般的な作業者のスキルレベルを想定
@@ -42,17 +94,16 @@ export class AIService {
 - 不明な点があれば質問を含める
 - 現実的で実行可能な時間を提示
 
-JSON形式のみで回答してください。
-`;
+JSON以外の説明文は一切含めず、上記の形式のJSONのみで回答してください。`;
 
     try {
       const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: 'あなたは経験豊富なプロジェクトマネージャーです。タスクの工数見積もりを正確に行います。常にJSON形式で回答してください。'
+            content: 'あなたは経験豊富なプロジェクトマネージャーです。タスクの工数見積もりを正確に行います。指定されたJSON形式で必ず回答してください。'
           },
           {
             role: 'user',
@@ -61,29 +112,43 @@ JSON形式のみで回答してください。
         ],
         temperature: 0.3,
         max_tokens: 500,
+        response_format: { type: "json_object" },
       });
 
       const response = completion.choices[0].message.content;
       if (!response) {
-        throw new Error('OpenAI API returned empty response');
+        throw new Error('OpenAI APIから空のレスポンスが返されました');
       }
 
+      let parsed;
       try {
-        const parsed = JSON.parse(response);
-        return {
-          estimated_hours: parsed.estimated_hours || 2,
-          hours: parsed.estimated_hours || 2, // 下位互換性のため
-          confidence_score: parsed.confidence_score || 0.5,
-          reasoning: parsed.reasoning || 'AI推定',
-          questions: parsed.questions || [],
-        };
-      } catch {
-        console.error('Failed to parse OpenAI response:', response);
-        throw new Error('Invalid response format from OpenAI');
+        parsed = JSON.parse(response);
+      } catch (jsonError) {
+        console.error('JSON解析エラー:', jsonError);
+        console.error('OpenAIレスポンス:', response);
+        throw new Error('OpenAI APIからの応答をJSON形式で解析できませんでした');
       }
+
+      // レスポンス検証
+      const validation = validateEstimateResponse(parsed);
+      if (!validation.isValid) {
+        console.error('レスポンス検証エラー:', validation.error);
+        console.error('OpenAIレスポンス:', response);
+        throw new Error(`OpenAI APIレスポンスの形式が不正です: ${validation.error}`);
+      }
+
+      const obj = parsed as Record<string, unknown>;
+      return {
+        estimated_hours: obj.estimated_hours as number,
+        hours: obj.estimated_hours as number, // 下位互換性のため
+        confidence_score: obj.confidence_score as number,
+        reasoning: obj.reasoning as string,
+        questions: (obj.questions as string[]) || [],
+      };
     } catch (error) {
-      console.error('OpenAI API error:', error);
-      throw new Error('AI見積もりの取得に失敗しました');
+      console.error('OpenAI API エラー:', error);
+      // エラーを再スローせず、エラーメッセージをそのまま返す
+      throw error;
     }
   }
 
@@ -138,7 +203,7 @@ JSON形式のみで回答してください。
     try {
       const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',

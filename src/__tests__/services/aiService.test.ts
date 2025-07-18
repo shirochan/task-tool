@@ -96,7 +96,7 @@ describe('AIService', () => {
 
       mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('AI見積もりの取得に失敗しました')
+      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('OpenAI APIから空のレスポンスが返されました')
     })
 
     it('不正なJSON応答の場合にエラーを投げる', async () => {
@@ -114,10 +114,10 @@ describe('AIService', () => {
 
       mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('AI見積もりの取得に失敗しました')
+      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('OpenAI APIからの応答をJSON形式で解析できませんでした')
     })
 
-    it('部分的に不正なJSON応答の場合にデフォルト値を使用する', async () => {
+    it('必須フィールドが不足している場合にエラーを投げる', async () => {
       process.env.OPENAI_API_KEY = 'test-api-key'
 
       const mockResponse = {
@@ -126,7 +126,7 @@ describe('AIService', () => {
             message: {
               content: JSON.stringify({
                 estimated_hours: 3,
-                // confidence_score, reasoning, questions が不足
+                // confidence_score, reasoning が不足
               }),
             },
           },
@@ -135,15 +135,7 @@ describe('AIService', () => {
 
       mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
 
-      const result = await AIService.estimateTask(mockRequest)
-
-      expect(result).toEqual({
-        estimated_hours: 3,
-        hours: 3,
-        confidence_score: 0.5,
-        reasoning: 'AI推定',
-        questions: [],
-      })
+      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('OpenAI APIレスポンスの形式が不正です')
     })
 
     it('OpenAI APIの呼び出しでエラーが発生した場合にエラーを投げる', async () => {
@@ -151,7 +143,7 @@ describe('AIService', () => {
 
       mockCreate.mockRejectedValue(new Error('API Error'))
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('AI見積もりの取得に失敗しました')
+      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('API Error')
     })
 
     it('正しいプロンプトでOpenAI APIを呼び出す', async () => {
@@ -177,11 +169,11 @@ describe('AIService', () => {
       await AIService.estimateTask(mockRequest)
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: 'あなたは経験豊富なプロジェクトマネージャーです。タスクの工数見積もりを正確に行います。常にJSON形式で回答してください。',
+            content: 'あなたは経験豊富なプロジェクトマネージャーです。タスクの工数見積もりを正確に行います。指定されたJSON形式で必ず回答してください。',
           },
           {
             role: 'user',
@@ -190,6 +182,7 @@ describe('AIService', () => {
         ],
         temperature: 0.3,
         max_tokens: 500,
+        response_format: { type: "json_object" },
       })
     })
   })
@@ -367,7 +360,7 @@ describe('AIService', () => {
       await AIService.generateScheduleRecommendations(mockTasks)
 
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',

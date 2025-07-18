@@ -62,7 +62,7 @@ describe('/api/estimate', () => {
       expect(mockEstimateTask).toHaveBeenCalledWith(taskInput)
     })
 
-    it('OpenAI APIが利用不可の場合にモック見積もりを返す', async () => {
+    it('OpenAI APIが利用不可の場合にエラーを返す', async () => {
       // OpenAI APIキーを設定しない
       delete process.env.OPENAI_API_KEY
 
@@ -88,20 +88,17 @@ describe('/api/estimate', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(200)
-      expect(data).toHaveProperty('hours')
-      expect(data).toHaveProperty('confidence_score')
-      expect(data).toHaveProperty('reasoning')
-      expect(typeof data.hours).toBe('number')
-      expect(data.hours).toBeGreaterThan(0)
+      expect(response.status).toBe(503)
+      expect(data).toHaveProperty('error')
+      expect(data.error).toContain('OpenAI APIキーが設定されていません')
     })
 
-    it('プレゼンテーション関連のタスクで適切なモック見積もりを返す', async () => {
-      delete process.env.OPENAI_API_KEY
+    it('OpenAI APIエラーの場合にエラーを返す', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key'
 
       const { AIService } = await import('@/lib/services/aiService')
       const mockEstimateTask = AIService.estimateTask as jest.Mock
-      mockEstimateTask.mockRejectedValue(new Error('OpenAI API key is not configured'))
+      mockEstimateTask.mockRejectedValue(new Error('OpenAI API レスポンスの形式が不正です'))
 
       const taskInput = {
         task: {
@@ -120,19 +117,17 @@ describe('/api/estimate', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(200)
-      expect(data.hours).toBe(4) // プレゼンテーション関連のタスクは4時間
-      expect(data.reasoning).toContain('プレゼンテーション')
-      expect(Array.isArray(data.questions)).toBe(true)
-      expect(data.questions.length).toBeGreaterThan(0)
+      expect(response.status).toBe(503)
+      expect(data).toHaveProperty('error')
+      expect(data.error).toContain('AI見積もりサービスに接続できません')
     })
 
-    it('会議関連のタスクで適切なモック見積もりを返す', async () => {
-      delete process.env.OPENAI_API_KEY
+    it('一般的なエラーの場合にエラーメッセージを返す', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key'
 
       const { AIService } = await import('@/lib/services/aiService')
       const mockEstimateTask = AIService.estimateTask as jest.Mock
-      mockEstimateTask.mockRejectedValue(new Error('OpenAI API key is not configured'))
+      mockEstimateTask.mockRejectedValue(new Error('一般的なエラーメッセージ'))
 
       const taskInput = {
         task: {
@@ -151,9 +146,9 @@ describe('/api/estimate', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(200)
-      expect(data.hours).toBe(1) // 会議関連のタスクは1時間
-      expect(data.reasoning).toContain('会議')
+      expect(response.status).toBe(500)
+      expect(data).toHaveProperty('error')
+      expect(data.error).toContain('一般的なエラーメッセージ')
     })
 
     it('必須フィールドが不足している場合にエラーを返す', async () => {
@@ -196,17 +191,25 @@ describe('/api/estimate', () => {
       expect(data.error).toContain('タイトル')
     })
 
-    it('優先度に基づいて信頼度スコアが調整される', async () => {
-      delete process.env.OPENAI_API_KEY
+    it('OpenAI APIが成功した場合に正常なレスポンスを返す', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key'
 
       const { AIService } = await import('@/lib/services/aiService')
       const mockEstimateTask = AIService.estimateTask as jest.Mock
-      mockEstimateTask.mockRejectedValue(new Error('OpenAI API key is not configured'))
+      
+      const mockResponse = {
+        estimated_hours: 2.5,
+        confidence_score: 0.8,
+        reasoning: 'テストタスクの見積もり',
+        questions: ['詳細を教えてください'],
+      }
+      
+      mockEstimateTask.mockResolvedValue(mockResponse)
 
       const taskInput = {
         task: {
           title: 'テストタスク',
-          description: '詳細な説明があります', // 説明を追加して信頼度低下を防ぐ
+          description: '詳細な説明があります',
           priority: 'must' as const,
         },
       }
@@ -221,10 +224,13 @@ describe('/api/estimate', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.confidence_score).toBeCloseTo(0.8, 1) // 0.7 + 0.1(must) = 0.8
+      expect(data.estimated_hours).toBe(2.5)
+      expect(data.confidence_score).toBe(0.8)
+      expect(data.reasoning).toBe('テストタスクの見積もり')
+      expect(data.questions).toEqual(['詳細を教えてください'])
     })
 
-    it('詳細説明がない場合に追加質問が生成される', async () => {
+    it('APIキーが設定されていない場合の適切なエラーハンドリング', async () => {
       delete process.env.OPENAI_API_KEY
 
       const { AIService } = await import('@/lib/services/aiService')
@@ -248,9 +254,9 @@ describe('/api/estimate', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(200)
-      expect(Array.isArray(data.questions)).toBe(true)
-      expect(data.questions).toContain('タスクの詳細を教えていただけますか？')
+      expect(response.status).toBe(503)
+      expect(data).toHaveProperty('error')
+      expect(data.error).toContain('OpenAI APIキーが設定されていません')
     })
   })
 })
