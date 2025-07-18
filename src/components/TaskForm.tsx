@@ -48,6 +48,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     timestamp: Date;
   }[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
+  const [lastUserMessage, setLastUserMessage] = useState('');
   const [activeTab, setActiveTab] = useState('form');
 
   const {
@@ -75,6 +76,8 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
 
   const handleChatSubmit = async () => {
     if (!currentMessage.trim()) return;
+
+    setLastUserMessage(currentMessage);
 
     const userMessage = {
       type: 'user' as const,
@@ -150,6 +153,10 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     
     if (estimateDetails.reasoning && !watch('description')) {
       setValue('description', estimateDetails.reasoning);
+    }
+    
+    if (!watch('title') && lastUserMessage) {
+      setValue('title', lastUserMessage);
     }
     
     setActiveTab('form');
@@ -271,7 +278,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                   value={currentMessage}
                   onChange={(e) => setCurrentMessage(e.target.value)}
                   placeholder="タスクについて質問してください... (Shift+Enterで改行、Enterで送信)"
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && handleChatSubmit()}
                   disabled={isEstimating}
                   rows={2}
                   className="resize-none"
