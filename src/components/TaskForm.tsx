@@ -50,6 +50,18 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
   const [currentMessage, setCurrentMessage] = useState('');
   const [activeTab, setActiveTab] = useState('form');
   const [isComposing, setIsComposing] = useState(false);
+  const [chatHistory, setChatHistory] = useState<Array<{
+    sessionId: string;
+    lastMessage: string;
+    lastActivity: Date;
+    messageCount: number;
+  }>>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessionMessages, setSessionMessages] = useState<{
+    type: 'user' | 'ai';
+    content: string;
+    timestamp: Date;
+  }[]>([]);
 
   const {
     register,
@@ -144,6 +156,33 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     }
   };
 
+  // チャット履歴を読み込む関数
+  const loadChatHistory = async () => {
+    try {
+      const response = await fetch('/api/consultation/history');
+      if (response.ok) {
+        const data = await response.json();
+        setChatHistory(data.sessions || []);
+      }
+    } catch (error) {
+      console.error('履歴読み込みエラー:', error);
+    }
+  };
+
+  // 特定のセッションの履歴を読み込む関数
+  const loadSessionMessages = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/consultation?sessionId=${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSessionMessages(data.history || []);
+        setSelectedSessionId(sessionId);
+      }
+    } catch (error) {
+      console.error('セッション履歴読み込みエラー:', error);
+    }
+  };
+
   const handleApplyToForm = () => {
     if (!estimateDetails) return;
 
@@ -208,11 +247,15 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="form">タスクフォーム</TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               AI相談
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              履歴
             </TabsTrigger>
           </TabsList>
           
@@ -322,6 +365,91 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                   </div>
                 </div>
               )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="history" className="space-y-4">
+            <div className="bg-gradient-to-r from-green-50 to-teal-50 p-4 rounded-lg border">
+              <h3 className="font-medium text-green-900 mb-2">チャット履歴</h3>
+              <p className="text-sm text-green-700 mb-3">
+                過去のAI相談履歴を確認できます。
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 履歴一覧 */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">セッション一覧</h4>
+                  <ScrollArea className="h-64 border rounded-lg bg-white p-2">
+                    {chatHistory.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8">
+                        <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm">履歴がありません</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={loadChatHistory}
+                        >
+                          履歴を読み込む
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {chatHistory.map((session) => (
+                          <div
+                            key={session.sessionId}
+                            className={`p-2 rounded cursor-pointer transition-colors ${
+                              selectedSessionId === session.sessionId
+                                ? 'bg-blue-100 border-blue-300'
+                                : 'bg-gray-50 hover:bg-gray-100'
+                            }`}
+                            onClick={() => loadSessionMessages(session.sessionId)}
+                          >
+                            <div className="text-sm font-medium truncate">
+                              {session.lastMessage}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {session.messageCount}件のメッセージ • {session.lastActivity.toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+                
+                {/* 選択されたセッションの詳細 */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">メッセージ履歴</h4>
+                  <ScrollArea className="h-64 border rounded-lg bg-white p-2">
+                    {selectedSessionId && sessionMessages.length > 0 ? (
+                      <div className="space-y-2">
+                        {sessionMessages.map((message, index) => (
+                          <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div 
+                              className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                                message.type === 'user' 
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-gray-100 text-gray-900'
+                              }`}
+                            >
+                              <p className="whitespace-pre-wrap">{message.content}</p>
+                              <div className="text-xs opacity-70 mt-1">
+                                {message.timestamp.toLocaleTimeString()}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm">セッションを選択してください</p>
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
             </div>
           </TabsContent>
           

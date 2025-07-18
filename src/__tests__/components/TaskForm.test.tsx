@@ -392,4 +392,18 @@ describe('TaskForm', () => {
       expect(screen.getByText(/見積もり結果: 2時間/)).toBeInTheDocument()
     })
   })
+
+  it('履歴タブが正常に表示される', async () => {
+    const user = userEvent.setup()
+    render(<TaskForm {...defaultProps} />)
+
+    // 履歴タブをクリック
+    await user.click(screen.getByRole('tab', { name: /履歴/ }))
+
+    // 履歴タブの内容が表示されることを確認
+    expect(screen.getByText('チャット履歴')).toBeInTheDocument()
+    expect(screen.getByText('過去のAI相談履歴を確認できます。')).toBeInTheDocument()
+    expect(screen.getByText('セッション一覧')).toBeInTheDocument()
+    expect(screen.getByText('メッセージ履歴')).toBeInTheDocument()
+  })
 })
