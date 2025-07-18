@@ -49,6 +49,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
   }[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [activeTab, setActiveTab] = useState('form');
+  const [isComposing, setIsComposing] = useState(false);
 
   const {
     register,
@@ -280,7 +281,14 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                   value={currentMessage}
                   onChange={(e) => setCurrentMessage(e.target.value)}
                   placeholder="タスクについて質問してください... (Shift+Enterで改行、Enterで送信)"
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSubmit()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
+                      e.preventDefault();
+                      handleChatSubmit();
+                    }
+                  }}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
                   disabled={isEstimating}
                   rows={2}
                   className="resize-none"

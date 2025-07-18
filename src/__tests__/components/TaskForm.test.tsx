@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskForm } from '@/components/TaskForm'
 import { Task } from '@/lib/types'
@@ -282,6 +282,58 @@ describe('TaskForm', () => {
     // 50文字で切り詰められたタイトルが設定されることを確認
     const expectedTitle = longMessage.substring(0, 50)
     expect(screen.getByDisplayValue(expectedTitle)).toBeInTheDocument()
+  })
+
+  it('日本語入力時のIME確定でEnterが押されても送信されない', async () => {
+    const user = userEvent.setup()
+    
+    render(<TaskForm {...defaultProps} />)
+
+    // AI相談タブに切り替え
+    await user.click(screen.getByRole('tab', { name: /AI相談/ }))
+
+    const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
+    
+    // IME入力開始をシミュレート
+    chatInput.focus()
+    fireEvent.compositionStart(chatInput)
+    
+    // 日本語入力中にEnterキーを押す（IME確定）
+    fireEvent.keyDown(chatInput, { key: 'Enter' })
+    
+    // IME入力終了をシミュレート
+    fireEvent.compositionEnd(chatInput)
+    
+    // メッセージが送信されていないことを確認
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('IME入力中でない場合はEnterキーで送信される', async () => {
+    const user = userEvent.setup()
+    
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ 
+        estimated_hours: 2, 
+        hours: 2, 
+        reasoning: 'テスト用の理由', 
+        questions: [] 
+      }),
+    })
+    
+    render(<TaskForm {...defaultProps} />)
+
+    // AI相談タブに切り替え
+    await user.click(screen.getByRole('tab', { name: /AI相談/ }))
+
+    const chatInput = screen.getByPlaceholderText(/タスクについて質問してください/)
+    
+    // 通常の入力でEnterキーを押す
+    await user.type(chatInput, 'テストメッセージ')
+    fireEvent.keyDown(chatInput, { key: 'Enter' })
+    
+    // メッセージが送信されることを確認
+    expect(global.fetch).toHaveBeenCalledWith('/api/estimate', expect.any(Object))
   })
 
   it('優先度の選択が正常に動作する', async () => {
