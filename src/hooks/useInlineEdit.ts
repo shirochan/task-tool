@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+type EditableElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
 export interface UseInlineEditProps<T> {
   initialValue: T;
   onSave: (value: T) => Promise<void>;
@@ -12,7 +14,7 @@ export interface UseInlineEditReturn<T> {
   value: T;
   error: string | null;
   isLoading: boolean;
-  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>;
+  inputRef: React.RefObject<EditableElement | null>;
   startEdit: () => void;
   cancelEdit: () => void;
   saveEdit: () => Promise<void>;
@@ -32,7 +34,7 @@ export function useInlineEdit<T = string>({
   const [originalValue, setOriginalValue] = useState<T>(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>(null);
+  const inputRef = useRef<EditableElement | null>(null);
 
   // 初期値が変更された場合の同期
   useEffect(() => {

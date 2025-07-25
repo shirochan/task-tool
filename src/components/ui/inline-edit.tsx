@@ -60,9 +60,14 @@ export const InlineEdit = React.forwardRef<HTMLDivElement, InlineEditProps>(
 
     const handleSelectChange = (newValue: string) => {
       setValue(newValue);
-      // Selectの場合は即座に保存
-      setTimeout(() => saveEdit(), 0);
     };
+
+    // Selectタイプの場合、値が変更されたら自動保存
+    React.useEffect(() => {
+      if (type === 'select' && isEditing && value !== initialValue) {
+        saveEdit();
+      }
+    }, [type, isEditing, value, initialValue, saveEdit]);
 
     const handleDisplayClick = () => {
       if (!disabled) {

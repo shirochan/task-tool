@@ -46,6 +46,7 @@ export function QuickAdd({
   });
   
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { success, error } = useToast();
 
   // フォーカス時に展開
@@ -56,7 +57,7 @@ export function QuickAdd({
   // 外部クリック時に縮小
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.closest('.quick-add-container')?.contains(event.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         if (!taskData.title.trim()) {
           setIsExpanded(false);
         }
@@ -177,7 +178,7 @@ export function QuickAdd({
   };
 
   return (
-    <div className={cn('quick-add-container', className)}>
+    <div ref={containerRef} className={cn('quick-add-container', className)}>
       <Card className={cn(
         'transition-all duration-200 ease-in-out',
         isExpanded ? 'shadow-md' : 'shadow-sm hover:shadow-md'

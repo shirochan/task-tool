@@ -128,18 +128,7 @@ export function InfoPanel({ selectedTask, tasks, className }: InfoPanelProps) {
                       <Clock className="h-4 w-4" />
                       <span className="text-sm">{selectedTask.estimated_hours}時間</span>
                     </div>
-                    {/* 実績時間フィールドが実装されるまでは進捗バーを非表示 */}
-                    {/* 将来的に actual_hours フィールドが追加されたら以下のコードを有効化 */}
-                    {/* 
-                    <div className="mt-2">
-                      <TaskProgress
-                        estimatedHours={selectedTask.estimated_hours}
-                        actualHours={selectedTask.actual_hours || 0}
-                        showLabel={true}
-                        size="sm"
-                      />
-                    </div>
-                    */}
+                    {/* TODO: actual_hours フィールド実装時に進捗バー表示を有効化 (関連issue: #TBD) */}
                   </div>
                 )}
 
