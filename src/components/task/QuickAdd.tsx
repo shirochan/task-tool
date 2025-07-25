@@ -90,9 +90,12 @@ export function QuickAdd({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: taskData.title,
-            description: '',
-            category: taskData.category
+            task: {
+              title: taskData.title,
+              description: '',
+              priority: taskData.priority,
+              category: taskData.category || undefined
+            }
           })
         }).then(res => res.ok ? res.json() : null).catch(() => null);
       }

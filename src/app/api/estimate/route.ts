@@ -7,6 +7,13 @@ export async function POST(request: NextRequest) {
     const body: EstimateRequest = await request.json();
     const { task } = body;
 
+    if (!task) {
+      return NextResponse.json(
+        { error: 'タスク情報が必要です' },
+        { status: 400 }
+      );
+    }
+
     if (!task.title) {
       return NextResponse.json(
         { error: 'タスクのタイトルが必要です' },
