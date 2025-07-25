@@ -12,7 +12,7 @@ export interface UseInlineEditReturn<T> {
   value: T;
   error: string | null;
   isLoading: boolean;
-  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
+  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>;
   startEdit: () => void;
   cancelEdit: () => void;
   saveEdit: () => Promise<void>;
@@ -32,7 +32,7 @@ export function useInlineEdit<T = string>({
   const [originalValue, setOriginalValue] = useState<T>(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>(null);
 
   // 初期値が変更された場合の同期
   useEffect(() => {

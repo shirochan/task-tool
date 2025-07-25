@@ -16,6 +16,7 @@ import { TaskProgress } from '@/components/ui/progress-bar';
 import { Dashboard } from './layout/Dashboard';
 import { InfoPanel } from './layout/InfoPanel';
 import { QuickAdd } from './task/QuickAdd';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import type { QuickAction } from './layout/Sidebar';
 
 export function TaskManager() {
@@ -27,6 +28,10 @@ export function TaskManager() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; taskId: number | null }>({
+    isOpen: false,
+    taskId: null
+  });
   const { success, error } = useToast();
 
   // 最近使用したカテゴリを計算
@@ -101,9 +106,13 @@ export function TaskManager() {
     success('タスクを更新しました');
   };
 
-  const handleDeleteTask = async (taskId: number) => {
-    // TODO: 後でカスタム確認ダイアログに置き換える
-    if (!confirm('このタスクを削除しますか？')) return;
+  const handleDeleteTask = (taskId: number) => {
+    setDeleteConfirmation({ isOpen: true, taskId });
+  };
+
+  const confirmDeleteTask = async () => {
+    const { taskId } = deleteConfirmation;
+    if (!taskId) return;
 
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
@@ -309,6 +318,18 @@ export function TaskManager() {
       {showSettings && (
         <Settings onClose={() => setShowSettings(false)} />
       )}
+
+      {/* 削除確認ダイアログ */}
+      <ConfirmationDialog
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, taskId: null })}
+        onConfirm={confirmDeleteTask}
+        title="タスクの削除"
+        message="このタスクを削除しますか？この操作は取り消せません。"
+        confirmText="削除"
+        cancelText="キャンセル"
+        variant="destructive"
+      />
     </Dashboard>
   );
 }

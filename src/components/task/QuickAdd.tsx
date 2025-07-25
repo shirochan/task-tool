@@ -38,6 +38,7 @@ export function QuickAdd({
 }: QuickAddProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiEstimateStatus, setAiEstimateStatus] = useState<'idle' | 'estimating' | 'success' | 'failed'>('idle');
   const [taskData, setTaskData] = useState<QuickTaskData>({
     title: '',
     priority: defaultPriority,
@@ -84,6 +85,7 @@ export function QuickAdd({
       // AI見積もりが有効な場合は並行して実行
       let estimatePromise: Promise<{ estimated_hours?: number } | null> | null = null;
       if (enableAIEstimate) {
+        setAiEstimateStatus('estimating');
         estimatePromise = fetch('/api/estimate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -110,21 +112,32 @@ export function QuickAdd({
 
       // AI見積もりの結果を取得して更新
       if (estimatePromise) {
-        const estimate = await estimatePromise;
-        if (estimate?.estimated_hours) {
-          // タスクを見積もり時間で更新
-          const updateResponse = await fetch(`/api/tasks/${createdTask.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...createdTask,
-              estimated_hours: estimate.estimated_hours
-            })
-          });
+        try {
+          const estimate = await estimatePromise;
+          if (estimate?.estimated_hours) {
+            // タスクを見積もり時間で更新
+            const updateResponse = await fetch(`/api/tasks/${createdTask.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...createdTask,
+                estimated_hours: estimate.estimated_hours
+              })
+            });
 
-          if (updateResponse.ok) {
-            createdTask = await updateResponse.json();
+            if (updateResponse.ok) {
+              createdTask = await updateResponse.json();
+              setAiEstimateStatus('success');
+            } else {
+              setAiEstimateStatus('failed');
+            }
+          } else {
+            setAiEstimateStatus('failed');
+            console.warn('AI見積もりの取得に失敗しました');
           }
+        } catch (estimateError) {
+          setAiEstimateStatus('failed');
+          console.warn('AI見積もり処理中にエラーが発生しました:', estimateError);
         }
       }
 
@@ -138,6 +151,7 @@ export function QuickAdd({
         priority: defaultPriority,
         category: defaultCategory
       });
+      setAiEstimateStatus('idle');
       setIsExpanded(false);
 
     } catch (err) {
@@ -247,9 +261,28 @@ export function QuickAdd({
 
               {/* AI見積もり表示 */}
               {enableAIEstimate && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Sparkles className="h-3 w-3" />
-                  <span>AI見積もりを自動実行します</span>
+                <div className="flex items-center gap-2 text-xs">
+                  {aiEstimateStatus === 'estimating' ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                      <span className="text-blue-600">AI見積もり実行中...</span>
+                    </>
+                  ) : aiEstimateStatus === 'success' ? (
+                    <>
+                      <Sparkles className="h-3 w-3 text-green-500" />
+                      <span className="text-green-600">AI見積もり完了</span>
+                    </>
+                  ) : aiEstimateStatus === 'failed' ? (
+                    <>
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                      <span className="text-amber-600">AI見積もりは利用できませんでした</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">AI見積もりを自動実行します</span>
+                    </>
+                  )}
                 </div>
               )}
             </div>
