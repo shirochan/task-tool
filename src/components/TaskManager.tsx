@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Clock, Calendar, Settings as SettingsIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { TaskForm } from './TaskForm';
 import { WeeklySchedule } from './WeeklySchedule';
 import { Settings } from './Settings';
 import { ThemeToggle } from './theme-toggle';
+import { useToast } from '@/hooks/useToast';
 
 export function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -18,28 +19,33 @@ export function TaskManager() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'schedule'>('tasks');
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { success, error } = useToast();
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       const response = await fetch('/api/tasks');
       if (response.ok) {
         const data = await response.json();
         setTasks(data);
+      } else {
+        error('タスクの取得に失敗しました');
       }
-    } catch (error) {
-      console.error('タスクの取得に失敗しました:', error);
+    } catch (err) {
+      console.error('タスクの取得に失敗しました:', err);
+      error('タスクの取得に失敗しました');
     } finally {
       setLoading(false);
     }
-  };
+  }, [error]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const handleTaskCreated = (task: Task) => {
     setTasks([...tasks, task]);
     setShowTaskForm(false);
+    success('タスクを作成しました');
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
@@ -47,6 +53,7 @@ export function TaskManager() {
       task.id === updatedTask.id ? updatedTask : task
     ));
     setEditingTask(null);
+    success('タスクを更新しました');
   };
 
   const handleDeleteTask = async (taskId: number) => {
@@ -59,9 +66,13 @@ export function TaskManager() {
 
       if (response.ok) {
         setTasks(tasks.filter(task => task.id !== taskId));
+        success('タスクを削除しました');
+      } else {
+        error('タスクの削除に失敗しました');
       }
-    } catch (error) {
-      console.error('タスクの削除に失敗しました:', error);
+    } catch (err) {
+      console.error('タスクの削除に失敗しました:', err);
+      error('タスクの削除に失敗しました');
     }
   };
 

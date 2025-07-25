@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Clock, Calendar, Tag, FileText, Star, Edit, Save } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
 
 interface TaskDetailProps {
   task: Task | null;
@@ -23,6 +24,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate }: TaskDetailProps)
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(false);
+  const { success, error } = useToast();
 
   if (!task) return null;
   
@@ -80,14 +82,15 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate }: TaskDetailProps)
         onUpdate?.(updatedTask);
         setIsEditing(false);
         setEditedTask(null);
+        success('タスクを更新しました');
       } else {
         const errorData = await response.json();
         console.error('API応答エラー:', errorData);
-        alert(`タスクの更新に失敗しました: ${errorData.error || 'Unknown error'}`);
+        error(`タスクの更新に失敗しました: ${errorData.error || 'Unknown error'}`);
       }
-    } catch (error) {
-      console.error('タスク更新エラー:', error);
-      alert('タスクの更新に失敗しました');
+    } catch (err) {
+      console.error('タスク更新エラー:', err);
+      error('タスクの更新に失敗しました');
     } finally {
       setLoading(false);
     }
