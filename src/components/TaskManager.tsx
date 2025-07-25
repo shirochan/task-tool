@@ -12,7 +12,6 @@ import { Settings } from './Settings';
 import { ThemeToggle } from './theme-toggle';
 import { useToast } from '@/hooks/useToast';
 import { getPriorityColorClass, getStatusColorClass, PRIORITY_LABELS } from '@/lib/constants/ui-constants';
-import { TaskProgress } from '@/components/ui/progress-bar';
 import { Dashboard } from './layout/Dashboard';
 import { InfoPanel } from './layout/InfoPanel';
 import { QuickAdd } from './task/QuickAdd';
@@ -242,15 +241,7 @@ export function TaskManager() {
                     </div>
                   </div>
                   
-                  {/* プログレスバー表示 */}
-                  {task.estimated_hours && (
-                    <TaskProgress
-                      estimatedHours={task.estimated_hours}
-                      actualHours={0} // 将来的に実績時間フィールドが追加されたら task.actual_hours を使用
-                      showLabel={true}
-                      size="sm"
-                    />
-                  )}
+                  {/* TODO: actual_hours フィールド実装時に進捗バー表示を有効化 (関連issue: #TBD) */}
                 </div>
               </CardContent>
             </Card>
