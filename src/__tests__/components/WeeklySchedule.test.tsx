@@ -13,6 +13,19 @@ global.fetch = jest.fn()
 // window.alert のモック
 global.alert = jest.fn()
 
+// useToast のモック
+jest.mock('@/hooks/useToast', () => ({
+  useToast: () => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+    info: jest.fn(),
+    toast: jest.fn(),
+    dismiss: jest.fn(),
+    toasts: [],
+  }),
+}))
+
 describe('WeeklySchedule', () => {
   const mockTasks: Task[] = [
     {

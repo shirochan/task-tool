@@ -161,7 +161,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     }
     
     setActiveTab('form');
-    toast.success('AI見積もりをフォームに反映しました');
+    success('AI見積もりをフォームに反映しました');
   };
 
   const onSubmit = async (data: TaskFormData) => {
@@ -182,10 +182,10 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
         const result = await response.json();
         if (task) {
           onTaskUpdated(result);
-          showSuccess('タスクを更新しました');
+          success('タスクを更新しました');
         } else {
           onTaskCreated(result);
-          showSuccess('タスクを作成しました');
+          success('タスクを作成しました');
         }
       } else {
         error('タスクの保存に失敗しました');

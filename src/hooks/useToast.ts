@@ -12,8 +12,11 @@ type ToasterToast = {
   action?: React.ReactNode
   variant?: "default" | "destructive" | "success" | "warning" | "info"
   duration?: number
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
   UPDATE_TOAST: "UPDATE_TOAST",

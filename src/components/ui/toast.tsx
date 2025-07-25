@@ -44,7 +44,7 @@ const ToastAction = React.forwardRef<
   React.ComponentPropsWithoutRef<"button"> & {
     altText?: string
   }
->(({ className, altText, ...props }, ref) => {
+>(({ className, ...props }, ref) => {
   return (
     <button
       ref={ref}
