@@ -5,11 +5,14 @@ import { Plus, Edit, Trash2, Clock, Calendar, Settings as SettingsIcon } from 'l
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Task, TASK_STATUS_LABELS, TASK_STATUS_COLORS } from '@/lib/types';
+import { Task, TASK_STATUS_LABELS } from '@/lib/types';
 import { TaskForm } from './TaskForm';
 import { WeeklySchedule } from './WeeklySchedule';
 import { Settings } from './Settings';
 import { ThemeToggle } from './theme-toggle';
+import { useToast } from '@/hooks/useToast';
+import { getPriorityColorClass, getStatusColorClass, PRIORITY_LABELS } from '@/lib/constants/ui-constants';
+import { TaskProgress } from '@/components/ui/progress-bar';
 
 export function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -18,6 +21,7 @@ export function TaskManager() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'schedule'>('tasks');
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { success, error } = useToast();
 
   useEffect(() => {
     fetchTasks();
@@ -29,9 +33,12 @@ export function TaskManager() {
       if (response.ok) {
         const data = await response.json();
         setTasks(data);
+      } else {
+        error('タスクの取得に失敗しました');
       }
-    } catch (error) {
-      console.error('タスクの取得に失敗しました:', error);
+    } catch (err) {
+      console.error('タスクの取得に失敗しました:', err);
+      error('タスクの取得に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -40,6 +47,7 @@ export function TaskManager() {
   const handleTaskCreated = (task: Task) => {
     setTasks([...tasks, task]);
     setShowTaskForm(false);
+    success('タスクを作成しました');
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
@@ -47,9 +55,11 @@ export function TaskManager() {
       task.id === updatedTask.id ? updatedTask : task
     ));
     setEditingTask(null);
+    success('タスクを更新しました');
   };
 
   const handleDeleteTask = async (taskId: number) => {
+    // TODO: 後でカスタム確認ダイアログに置き換える
     if (!confirm('このタスクを削除しますか？')) return;
 
     try {
@@ -59,26 +69,18 @@ export function TaskManager() {
 
       if (response.ok) {
         setTasks(tasks.filter(task => task.id !== taskId));
+        success('タスクを削除しました');
+      } else {
+        error('タスクの削除に失敗しました');
       }
-    } catch (error) {
-      console.error('タスクの削除に失敗しました:', error);
+    } catch (err) {
+      console.error('タスクの削除に失敗しました:', err);
+      error('タスクの削除に失敗しました');
     }
-  };
-
-  const getPriorityColor = (priority: 'must' | 'want') => {
-    return priority === 'must' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-  };
-
-  const getPriorityLabel = (priority: 'must' | 'want') => {
-    return priority === 'must' ? '必須' : '希望';
   };
 
   const getStatusLabel = (status: Task['status']) => {
     return TASK_STATUS_LABELS[status];
-  };
-
-  const getStatusColor = (status: Task['status']) => {
-    return TASK_STATUS_COLORS[status];
   };
 
   const formatDate = (dateString: string) => {
@@ -177,10 +179,10 @@ export function TaskManager() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <CardTitle className="text-lg">{task.title}</CardTitle>
-                          <Badge className={getPriorityColor(task.priority)}>
-                            {getPriorityLabel(task.priority)}
+                          <Badge className={getPriorityColorClass(task.priority)}>
+                            {PRIORITY_LABELS[task.priority]}
                           </Badge>
-                          <Badge className={getStatusColor(task.status)}>
+                          <Badge className={getStatusColorClass(task.status)}>
                             {getStatusLabel(task.status)}
                           </Badge>
                         </div>
@@ -207,22 +209,34 @@ export function TaskManager() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      {task.category && (
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                          {task.category}
-                        </span>
-                      )}
-                      {task.estimated_hours && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        {task.category && (
+                          <span className="bg-gray-100 px-2 py-1 rounded">
+                            {task.category}
+                          </span>
+                        )}
+                        {task.estimated_hours && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            <span>{task.estimated_hours}時間</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{task.estimated_hours}時間</span>
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatDate(task.created_at)}</span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(task.created_at)}</span>
                       </div>
+                      
+                      {/* プログレスバー表示 */}
+                      {task.estimated_hours && (
+                        <TaskProgress
+                          estimatedHours={task.estimated_hours}
+                          actualHours={0} // 将来的に実績時間フィールドが追加されたら task.actual_hours を使用
+                          showLabel={true}
+                          size="sm"
+                        />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
