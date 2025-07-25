@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomCategory, CustomCategoryInput } from '@/lib/types';
+import { useToast } from '@/hooks/useToast';
 
 interface SettingsProps {
   onClose: () => void;
@@ -24,6 +25,7 @@ export function Settings({ onClose }: SettingsProps) {
   const [editingCategory, setEditingCategory] = useState<CustomCategory | null>(null);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { success, error } = useToast();
 
   useEffect(() => {
     fetchSettings();
@@ -85,13 +87,18 @@ export function Settings({ onClose }: SettingsProps) {
   };
 
   const handleSaveSettings = async () => {
-    await Promise.all([
-      saveSetting('work_start_time', workStartTime),
-      saveSetting('work_end_time', workEndTime),
-      saveSetting('daily_work_hours', dailyWorkHours.toString()),
-    ]);
-    
-    alert('設定を保存しました');
+    try {
+      await Promise.all([
+        saveSetting('work_start_time', workStartTime),
+        saveSetting('work_end_time', workEndTime),
+        saveSetting('daily_work_hours', dailyWorkHours.toString()),
+      ]);
+      
+      success('設定を保存しました');
+    } catch (err) {
+      console.error('設定の保存に失敗しました:', err);
+      error('設定の保存に失敗しました');
+    }
   };
 
   const handleCreateCategory = async () => {
@@ -168,11 +175,11 @@ export function Settings({ onClose }: SettingsProps) {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         
-        alert('データのエクスポートが完了しました');
+        success('データのエクスポートが完了しました');
       }
-    } catch (error) {
-      console.error('データのエクスポートに失敗しました:', error);
-      alert('データのエクスポートに失敗しました');
+    } catch (err) {
+      console.error('データのエクスポートに失敗しました:', err);
+      error('データのエクスポートに失敗しました');
     }
   };
 
@@ -198,7 +205,7 @@ export function Settings({ onClose }: SettingsProps) {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`復元が完了しました: タスク${result.restored.tasks}件、設定${result.restored.settings}件、カテゴリ${result.restored.categories}件`);
+        success(`復元が完了しました: タスク${result.restored.tasks}件、設定${result.restored.settings}件、カテゴリ${result.restored.categories}件`);
         
         // 画面を更新
         fetchSettings();
@@ -206,9 +213,9 @@ export function Settings({ onClose }: SettingsProps) {
       } else {
         throw new Error('復元に失敗しました');
       }
-    } catch (error) {
-      console.error('データの復元に失敗しました:', error);
-      alert('データの復元に失敗しました');
+    } catch (err) {
+      console.error('データの復元に失敗しました:', err);
+      error('データの復元に失敗しました');
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

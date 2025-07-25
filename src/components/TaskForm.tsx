@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Bot, User, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
 import { Task, TASK_STATUS_LABELS, TaskStatus } from '@/lib/types';
+import { useToast } from '@/hooks/useToast';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'タイトルは必須です'),
@@ -48,6 +48,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     timestamp: Date;
   }[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
+  const { success, error } = useToast();
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [activeTab, setActiveTab] = useState('form');
 
@@ -181,15 +182,17 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
         const result = await response.json();
         if (task) {
           onTaskUpdated(result);
+          showSuccess('タスクを更新しました');
         } else {
           onTaskCreated(result);
+          showSuccess('タスクを作成しました');
         }
       } else {
-        alert('タスクの保存に失敗しました');
+        error('タスクの保存に失敗しました');
       }
-    } catch (error) {
-      console.error('タスク保存エラー:', error);
-      alert('タスクの保存に失敗しました');
+    } catch (err) {
+      console.error('タスク保存エラー:', err);
+      error('タスクの保存に失敗しました');
     } finally {
       setIsSubmitting(false);
     }

@@ -8,6 +8,7 @@ import { Clock, Calendar, RefreshCw, GripVertical } from 'lucide-react';
 import { Task, TaskScheduleWithTask, DAYS_OF_WEEK } from '@/lib/types';
 import { getISOWeekDates } from '@/lib/utils';
 import { TaskDetail } from '@/components/TaskDetail';
+import { useToast } from '@/hooks/useToast';
 import {
   DndContext,
   DragOverlay,
@@ -398,6 +399,7 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
   const [draggedTask, setDraggedTask] = useState<TaskScheduleWithTask | Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const { success, error } = useToast();
 
   // ドラッグ&ドロップ用のセンサー設定
   const sensors = useSensors(
@@ -445,12 +447,13 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
 
       if (response.ok) {
         await fetchWeeklySchedule();
+        success('スケジュールを生成しました');
       } else {
-        alert('スケジュール生成に失敗しました');
+        error('スケジュール生成に失敗しました');
       }
-    } catch (error) {
-      console.error('スケジュール生成エラー:', error);
-      alert('スケジュール生成に失敗しました');
+    } catch (err) {
+      console.error('スケジュール生成エラー:', err);
+      error('スケジュール生成に失敗しました');
     } finally {
       setIsGenerating(false);
     }
@@ -522,13 +525,14 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
 
       if (response.ok) {
         await fetchWeeklySchedule();
+        success('タスクを移動しました');
       } else {
         const errorData = await response.json();
-        alert(errorData.error || 'タスクの移動に失敗しました');
+        error(errorData.error || 'タスクの移動に失敗しました');
       }
-    } catch (error) {
-      console.error('タスク移動エラー:', error);
-      alert('タスクの移動に失敗しました');
+    } catch (err) {
+      console.error('タスク移動エラー:', err);
+      error('タスクの移動に失敗しました');
     }
 
     setActiveId(null);
