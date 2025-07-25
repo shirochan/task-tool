@@ -1,23 +1,71 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Clock, Calendar, Settings as SettingsIcon } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Edit, Trash2, Clock, Calendar, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Task, TASK_STATUS_LABELS, TASK_STATUS_COLORS } from '@/lib/types';
+import { Task, TASK_STATUS_LABELS } from '@/lib/types';
 import { TaskForm } from './TaskForm';
 import { WeeklySchedule } from './WeeklySchedule';
 import { Settings } from './Settings';
 import { ThemeToggle } from './theme-toggle';
+import { useToast } from '@/hooks/useToast';
+import { getPriorityColorClass, getStatusColorClass, PRIORITY_LABELS } from '@/lib/constants/ui-constants';
+import { Dashboard } from './layout/Dashboard';
+import { InfoPanel } from './layout/InfoPanel';
+import { QuickAdd } from './task/QuickAdd';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import type { QuickAction } from './layout/Sidebar';
 
 export function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'schedule'>('tasks');
+  const [activeView, setActiveView] = useState<'tasks' | 'schedule'>('tasks');
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; taskId: number | null }>({
+    isOpen: false,
+    taskId: null
+  });
+  const { success, error } = useToast();
+
+  // 最近使用したカテゴリを計算
+  const recentCategories = useMemo(() => {
+    const categories = tasks
+      .filter(task => task.category)
+      .map(task => task.category!)
+      .reduce((acc, category) => {
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+    
+    return Object.entries(categories)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([category]) => category);
+  }, [tasks]);
+
+  // クイックアクションの定義
+  const quickActions: QuickAction[] = useMemo(() => [
+    {
+      id: 'new-task',
+      label: '新規タスク',
+      icon: Plus,
+      action: () => setShowTaskForm(true),
+      badge: undefined
+    },
+    {
+      id: 'toggle-info',
+      label: '情報パネル',
+      icon: FileText,
+      action: () => setShowInfoPanel(!showInfoPanel),
+      badge: showInfoPanel ? '●' : undefined
+    }
+  ], [showInfoPanel]);
 
   useEffect(() => {
     fetchTasks();
@@ -29,9 +77,12 @@ export function TaskManager() {
       if (response.ok) {
         const data = await response.json();
         setTasks(data);
+      } else {
+        error('タスクの取得に失敗しました');
       }
-    } catch (error) {
-      console.error('タスクの取得に失敗しました:', error);
+    } catch (err) {
+      console.error('タスクの取得に失敗しました:', err);
+      error('タスクの取得に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -40,6 +91,10 @@ export function TaskManager() {
   const handleTaskCreated = (task: Task) => {
     setTasks([...tasks, task]);
     setShowTaskForm(false);
+    // クイック追加からの場合はトーストは既に表示されているため、ここでは表示しない
+    if (showTaskForm) {
+      success('タスクを作成しました');
+    }
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
@@ -47,10 +102,16 @@ export function TaskManager() {
       task.id === updatedTask.id ? updatedTask : task
     ));
     setEditingTask(null);
+    success('タスクを更新しました');
   };
 
-  const handleDeleteTask = async (taskId: number) => {
-    if (!confirm('このタスクを削除しますか？')) return;
+  const handleDeleteTask = (taskId: number) => {
+    setDeleteConfirmation({ isOpen: true, taskId });
+  };
+
+  const confirmDeleteTask = async () => {
+    const { taskId } = deleteConfirmation;
+    if (!taskId) return;
 
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
@@ -59,26 +120,25 @@ export function TaskManager() {
 
       if (response.ok) {
         setTasks(tasks.filter(task => task.id !== taskId));
+        success('タスクを削除しました');
+      } else {
+        error('タスクの削除に失敗しました');
       }
-    } catch (error) {
-      console.error('タスクの削除に失敗しました:', error);
+    } catch (err) {
+      console.error('タスクの削除に失敗しました:', err);
+      error('タスクの削除に失敗しました');
     }
-  };
-
-  const getPriorityColor = (priority: 'must' | 'want') => {
-    return priority === 'must' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-  };
-
-  const getPriorityLabel = (priority: 'must' | 'want') => {
-    return priority === 'must' ? '必須' : '希望';
   };
 
   const getStatusLabel = (status: Task['status']) => {
     return TASK_STATUS_LABELS[status];
   };
 
-  const getStatusColor = (status: Task['status']) => {
-    return TASK_STATUS_COLORS[status];
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    if (!showInfoPanel) {
+      setShowInfoPanel(true);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -97,55 +157,141 @@ export function TaskManager() {
     );
   }
 
+  const renderTaskList = () => (
+    <div className="space-y-4">
+      {/* クイック追加 */}
+      <QuickAdd
+        onTaskCreated={handleTaskCreated}
+        recentCategories={recentCategories}
+        enableAIEstimate={true}
+      />
+
+      {/* タスクリスト */}
+      {tasks.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-500 mb-4">まだタスクがありません</p>
+            <Button onClick={() => setShowTaskForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              最初のタスクを作成
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {tasks.map((task) => (
+            <Card 
+              key={task.id} 
+              className={`hover:shadow-md transition-shadow cursor-pointer ${
+                selectedTask?.id === task.id ? 'ring-2 ring-primary' : ''
+              }`}
+              onClick={() => handleTaskClick(task)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CardTitle className="text-lg">{task.title}</CardTitle>
+                      <Badge className={getPriorityColorClass(task.priority)}>
+                        {PRIORITY_LABELS[task.priority]}
+                      </Badge>
+                      <Badge className={getStatusColorClass(task.status)}>
+                        {getStatusLabel(task.status)}
+                      </Badge>
+                    </div>
+                    {task.description && (
+                      <CardDescription>{task.description}</CardDescription>
+                    )}
+                  </div>
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingTask(task)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteTask(task.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    {task.category && (
+                      <span className="bg-gray-100 px-2 py-1 rounded">
+                        {task.category}
+                      </span>
+                    )}
+                    {task.estimated_hours && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{task.estimated_hours}時間</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>{formatDate(task.created_at)}</span>
+                    </div>
+                  </div>
+                  
+                  {/* TODO: actual_hours フィールド実装時に進捗バー表示を有効化 (関連issue: #TBD) */}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* タブナビゲーション */}
-      <div className="flex mb-6 border-b">
-        <button
-          onClick={() => setActiveTab('tasks')}
-          className={`px-4 py-2 font-medium border-b-2 ${
-            activeTab === 'tasks'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          タスク管理
-        </button>
-        <button
-          onClick={() => setActiveTab('schedule')}
-          className={`px-4 py-2 font-medium border-b-2 ${
-            activeTab === 'schedule'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          週間スケジュール
-        </button>
-        <div className="ml-auto flex gap-2">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSettings(true)}
-          >
-            <SettingsIcon className="w-4 h-4" />
-          </Button>
+    <Dashboard
+      activeView={activeView}
+      onViewChange={setActiveView}
+      onSettingsClick={() => setShowSettings(true)}
+      tasks={tasks}
+      quickActions={quickActions}
+      customization={{
+        showInfoPanel: showInfoPanel,
+        showSidebar: true
+      }}
+      infoPanelContent={
+        <InfoPanel 
+          selectedTask={selectedTask} 
+          tasks={tasks}
+        />
+      }
+    >
+      <div className="h-full flex flex-col">
+        {/* ヘッダー */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">
+            {activeView === 'tasks' ? 'タスク管理' : '週間スケジュール'}
+          </h1>
+          <div className="flex gap-2">
+            <ThemeToggle />
+          </div>
+        </div>
+
+        {/* メインコンテンツ */}
+        <div className="flex-1 overflow-auto">
+          {activeView === 'tasks' ? renderTaskList() : (
+            <WeeklySchedule tasks={tasks} onTaskUpdate={handleTaskUpdated} />
+          )}
         </div>
       </div>
 
-      {activeTab === 'tasks' && (
-        <div className="space-y-6">
-          {/* 新規タスク作成ボタン */}
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">タスク一覧</h2>
-            <Button onClick={() => setShowTaskForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              新規タスク
-            </Button>
-          </div>
-
-          {/* タスクフォーム */}
-          {(showTaskForm || editingTask) && (
+      {/* タスクフォーム */}
+      {(showTaskForm || editingTask) && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto">
             <TaskForm
               task={editingTask}
               onTaskCreated={handleTaskCreated}
@@ -155,91 +301,26 @@ export function TaskManager() {
                 setEditingTask(null);
               }}
             />
-          )}
-
-          {/* タスクリスト */}
-          <div className="space-y-4">
-            {tasks.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <p className="text-gray-500 mb-4">まだタスクがありません</p>
-                  <Button onClick={() => setShowTaskForm(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    最初のタスクを作成
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              tasks.map((task) => (
-                <Card key={task.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CardTitle className="text-lg">{task.title}</CardTitle>
-                          <Badge className={getPriorityColor(task.priority)}>
-                            {getPriorityLabel(task.priority)}
-                          </Badge>
-                          <Badge className={getStatusColor(task.status)}>
-                            {getStatusLabel(task.status)}
-                          </Badge>
-                        </div>
-                        {task.description && (
-                          <CardDescription>{task.description}</CardDescription>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingTask(task)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteTask(task.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      {task.category && (
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                          {task.category}
-                        </span>
-                      )}
-                      {task.estimated_hours && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{task.estimated_hours}時間</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(task.created_at)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
           </div>
         </div>
-      )}
-
-      {activeTab === 'schedule' && (
-        <WeeklySchedule tasks={tasks} onTaskUpdate={handleTaskUpdated} />
       )}
 
       {/* 設定モーダル */}
       {showSettings && (
         <Settings onClose={() => setShowSettings(false)} />
       )}
-    </div>
+
+      {/* 削除確認ダイアログ */}
+      <ConfirmationDialog
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, taskId: null })}
+        onConfirm={confirmDeleteTask}
+        title="タスクの削除"
+        message="このタスクを削除しますか？この操作は取り消せません。"
+        confirmText="削除"
+        cancelText="キャンセル"
+        variant="destructive"
+      />
+    </Dashboard>
   );
 }

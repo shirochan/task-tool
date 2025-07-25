@@ -76,6 +76,26 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
+  /* タスク優先度カラー */
+  --priority-must: oklch(0.577 0.245 27.325);
+  --priority-must-bg: oklch(0.97 0.08 27.325);
+  --priority-want: oklch(0.646 0.222 41.116);
+  --priority-want-bg: oklch(0.97 0.08 41.116);
+  
+  /* タスクステータスカラー */
+  --status-pending: oklch(0.556 0 0);
+  --status-pending-bg: oklch(0.97 0 0);
+  --status-in-progress: oklch(0.646 0.222 41.116);
+  --status-in-progress-bg: oklch(0.97 0.08 41.116);
+  --status-on-hold: oklch(0.828 0.189 84.429);
+  --status-on-hold-bg: oklch(0.97 0.08 84.429);
+  --status-review: oklch(0.769 0.188 70.08);
+  --status-review-bg: oklch(0.97 0.08 70.08);
+  --status-completed: oklch(0.6 0.118 184.704);
+  --status-completed-bg: oklch(0.97 0.05 184.704);
+  --status-cancelled: oklch(0.708 0 0);
+  --status-cancelled-bg: oklch(0.97 0 0);
 }
 
 .dark {
@@ -110,6 +130,26 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  
+  /* タスク優先度カラー (ダークモード) */
+  --priority-must: oklch(0.704 0.191 22.216);
+  --priority-must-bg: oklch(0.269 0.08 22.216);
+  --priority-want: oklch(0.488 0.243 264.376);
+  --priority-want-bg: oklch(0.269 0.08 264.376);
+  
+  /* タスクステータスカラー (ダークモード) */
+  --status-pending: oklch(0.708 0 0);
+  --status-pending-bg: oklch(0.269 0 0);
+  --status-in-progress: oklch(0.488 0.243 264.376);
+  --status-in-progress-bg: oklch(0.269 0.08 264.376);
+  --status-on-hold: oklch(0.769 0.188 70.08);
+  --status-on-hold-bg: oklch(0.269 0.08 70.08);
+  --status-review: oklch(0.627 0.265 303.9);
+  --status-review-bg: oklch(0.269 0.08 303.9);
+  --status-completed: oklch(0.696 0.17 162.48);
+  --status-completed-bg: oklch(0.269 0.05 162.48);
+  --status-cancelled: oklch(0.556 0 0);
+  --status-cancelled-bg: oklch(0.269 0 0);
 }
 
 @layer base {

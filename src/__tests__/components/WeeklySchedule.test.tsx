@@ -286,14 +286,14 @@ describe('WeeklySchedule', () => {
       const mustBadges = screen.getAllByText('必須')
       const wantBadges = screen.getAllByText('希望')
 
-      // 必須タスクの赤いバッジ
+      // 必須タスクのバッジ（新しいカラーシステム）
       mustBadges.forEach(badge => {
-        expect(badge).toHaveClass('bg-red-100', 'text-red-800')
+        expect(badge).toHaveClass('bg-[var(--priority-must-bg)]', 'text-[var(--priority-must)]')
       })
 
-      // 希望タスクの青いバッジ
+      // 希望タスクのバッジ（新しいカラーシステム）
       wantBadges.forEach(badge => {
-        expect(badge).toHaveClass('bg-blue-100', 'text-blue-800')
+        expect(badge).toHaveClass('bg-[var(--priority-want-bg)]', 'text-[var(--priority-want)]')
       })
     })
   })
