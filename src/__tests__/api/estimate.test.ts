@@ -165,8 +165,9 @@ describe('/api/estimate', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(500) // 現在の実装では500エラー
+      expect(response.status).toBe(400) // 必須フィールド不足なので400エラー
       expect(data).toHaveProperty('error')
+      expect(data.error).toBe('タスク情報が必要です')
     })
 
     it('タスクのタイトルが不足している場合にエラーを返す', async () => {

@@ -57,7 +57,7 @@ describe('TaskManager', () => {
 
     // データ読み込み後の確認
     await waitFor(() => {
-      expect(screen.getByText('タスク一覧')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: 'タスク管理' })).toBeInTheDocument()
     })
   })
 
@@ -146,30 +146,33 @@ describe('TaskManager', () => {
 
 
 
-  it('タブナビゲーションが正常に動作する', async () => {
+  it('サイドバーナビゲーションが正常に動作する', async () => {
     render(<TaskManager />)
 
     await waitFor(() => {
-      expect(screen.getByText('タスク管理')).toBeInTheDocument()
-      expect(screen.getByText('週間スケジュール')).toBeInTheDocument()
+      // サイドバーの存在確認（ナビゲーションボタンの存在確認）
+      expect(screen.getAllByText('タスク管理').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('週間スケジュール').length).toBeGreaterThan(0)
     })
 
-    // 初期状態ではタスク管理タブがアクティブ
-    expect(screen.getByText('タスク一覧')).toBeInTheDocument()
+    // 初期状態ではタスク管理ビューがアクティブ（ヘッダーにタスク管理と表示される）
+    expect(screen.getByRole('heading', { level: 1, name: 'タスク管理' })).toBeInTheDocument()
 
-    // 週間スケジュールタブをクリック
-    fireEvent.click(screen.getByText('週間スケジュール'))
+    // サイドバーの週間スケジュールボタンをクリック（カレンダーアイコンの付いているボタン）
+    const scheduleButton = screen.getByRole('button', { name: /週間スケジュール/ })
+    fireEvent.click(scheduleButton)
 
-    // 週間スケジュールコンポーネントが表示される
+    // 週間スケジュールビューが表示される
     await waitFor(() => {
-      expect(screen.getByText('週間スケジュール')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: '週間スケジュール' })).toBeInTheDocument()
     })
 
-    // タスク管理タブに戻る
-    fireEvent.click(screen.getByText('タスク管理'))
+    // サイドバーのタスク管理ボタンをクリック（ファイルアイコンの付いているボタン）
+    const taskButton = screen.getByRole('button', { name: /タスク管理/ })
+    fireEvent.click(taskButton)
 
     await waitFor(() => {
-      expect(screen.getByText('タスク一覧')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: 'タスク管理' })).toBeInTheDocument()
     })
   })
 
@@ -199,8 +202,9 @@ describe('TaskManager', () => {
       const mustBadge = screen.getByText('必須')
       const wantBadge = screen.getByText('希望')
 
-      expect(mustBadge).toHaveClass('bg-red-100', 'text-red-800')
-      expect(wantBadge).toHaveClass('bg-blue-100', 'text-blue-800')
+      // 新しいカラーシステム（CSS変数ベース）をテスト
+      expect(mustBadge).toHaveClass('bg-[var(--priority-must-bg)]', 'text-[var(--priority-must)]')
+      expect(wantBadge).toHaveClass('bg-[var(--priority-want-bg)]', 'text-[var(--priority-want)]')
     })
   })
 
