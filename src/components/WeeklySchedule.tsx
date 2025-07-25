@@ -8,6 +8,8 @@ import { Clock, Calendar, RefreshCw, GripVertical } from 'lucide-react';
 import { Task, TaskScheduleWithTask, DAYS_OF_WEEK } from '@/lib/types';
 import { getISOWeekDates } from '@/lib/utils';
 import { TaskDetail } from '@/components/TaskDetail';
+import { useToast } from '@/hooks/useToast';
+import { getPriorityColorClass, PRIORITY_LABELS } from '@/lib/constants/ui-constants';
 import {
   DndContext,
   DragOverlay,
@@ -56,9 +58,6 @@ function DraggableTask({ task, isDragging = false, onTaskClick }: DraggableTaskP
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  const getPriorityColor = (priority: 'must' | 'want') => {
-    return priority === 'must' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-  };
 
   // 継続中のタスクの場合は簡素化された表示
   if (task.isContinuation) {
@@ -164,8 +163,8 @@ function DraggableTask({ task, isDragging = false, onTaskClick }: DraggableTaskP
             )}
           </div>
           <div className="flex items-center justify-between">
-            <Badge className={getPriorityColor(task.priority)}>
-              {task.priority === 'must' ? '必須' : '希望'}
+            <Badge className={getPriorityColorClass(task.priority)}>
+              {PRIORITY_LABELS[task.priority]}
             </Badge>
             {task.estimated_hours && (
               <div className="flex items-center gap-1 text-xs text-gray-600">
@@ -345,9 +344,6 @@ function DraggableUnscheduledTask({ task, onTaskClick }: DraggableUnscheduledTas
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  const getPriorityColor = (priority: 'must' | 'want') => {
-    return priority === 'must' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-  };
 
   return (
     <div
@@ -374,8 +370,8 @@ function DraggableUnscheduledTask({ task, onTaskClick }: DraggableUnscheduledTas
           }}
         >
           <span className="font-medium">{task.title}</span>
-          <Badge className={getPriorityColor(task.priority)}>
-            {task.priority === 'must' ? '必須' : '希望'}
+          <Badge className={getPriorityColorClass(task.priority)}>
+            {PRIORITY_LABELS[task.priority]}
           </Badge>
         </div>
       </div>
@@ -398,6 +394,7 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
   const [draggedTask, setDraggedTask] = useState<TaskScheduleWithTask | Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const { success, error } = useToast();
 
   // ドラッグ&ドロップ用のセンサー設定
   const sensors = useSensors(
@@ -445,12 +442,13 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
 
       if (response.ok) {
         await fetchWeeklySchedule();
+        success('スケジュールを生成しました');
       } else {
-        alert('スケジュール生成に失敗しました');
+        error('スケジュール生成に失敗しました');
       }
-    } catch (error) {
-      console.error('スケジュール生成エラー:', error);
-      alert('スケジュール生成に失敗しました');
+    } catch (err) {
+      console.error('スケジュール生成エラー:', err);
+      error('スケジュール生成に失敗しました');
     } finally {
       setIsGenerating(false);
     }
@@ -522,13 +520,14 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
 
       if (response.ok) {
         await fetchWeeklySchedule();
+        success('タスクを移動しました');
       } else {
         const errorData = await response.json();
-        alert(errorData.error || 'タスクの移動に失敗しました');
+        error(errorData.error || 'タスクの移動に失敗しました');
       }
-    } catch (error) {
-      console.error('タスク移動エラー:', error);
-      alert('タスクの移動に失敗しました');
+    } catch (err) {
+      console.error('タスク移動エラー:', err);
+      error('タスクの移動に失敗しました');
     }
 
     setActiveId(null);
@@ -542,9 +541,6 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
     return `${dayName} ${date.getDate()}日`;
   };
 
-  const getPriorityColor = (priority: 'must' | 'want') => {
-    return priority === 'must' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-  };
 
   const getTotalHours = (dateString: string) => {
     const dayTasks = weeklySchedule[dateString] || [];
@@ -699,8 +695,8 @@ export function WeeklySchedule({ tasks, onTaskUpdate }: WeeklyScheduleProps) {
               {draggedTask.title}
             </div>
             <div className="flex items-center justify-between">
-              <Badge className={getPriorityColor(draggedTask.priority)}>
-                {draggedTask.priority === 'must' ? '必須' : '希望'}
+              <Badge className={getPriorityColorClass(draggedTask.priority)}>
+                {PRIORITY_LABELS[draggedTask.priority]}
               </Badge>
               {draggedTask.estimated_hours && (
                 <div className="flex items-center gap-1 text-xs text-gray-600">
