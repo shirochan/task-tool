@@ -1,5 +1,5 @@
 import { AIService } from '@/lib/services/aiService';
-import { EstimateRequest, EstimateResponse } from '@/lib/types';
+import { EstimateRequest } from '@/lib/types';
 import { mockTaskInput, mockEstimateResponse } from '@/test-utils/fixtures';
 
 // OpenAI APIをモック

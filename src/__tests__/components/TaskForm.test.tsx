@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TaskForm } from '@/components/TaskForm';
 import { mockTaskFormProps, mockTaskFormPropsWithTask, mockEstimateResponse } from '@/test-utils/fixtures';
@@ -257,7 +257,7 @@ describe('TaskForm', () => {
     });
 
     it('should show loading state while estimating', async () => {
-      let resolvePromise: (value: any) => void;
+      let resolvePromise: (value: unknown) => void;
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
