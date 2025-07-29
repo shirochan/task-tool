@@ -1,6 +1,6 @@
 import { GET, POST } from '@/app/api/settings/route';
 import { TaskService } from '@/lib/services/taskService';
-import { cleanupDatabase, closeDatabase } from '@/lib/database/db';
+import { closeDatabase } from '@/lib/database/db';
 import { NextRequest } from 'next/server';
 
 // TaskServiceをモック
@@ -13,8 +13,8 @@ jest.mock('@/lib/services/taskService', () => ({
 
 describe('/api/settings', () => {
   const mockTaskService = TaskService as jest.MockedClass<typeof TaskService>;
-  let mockGetAllSettings: jest.MockedFunction<any>;
-  let mockUpsertSetting: jest.MockedFunction<any>;
+  let mockGetAllSettings: jest.MockedFunction<TaskService['getAllSettings']>;
+  let mockUpsertSetting: jest.MockedFunction<TaskService['upsertSetting']>;
 
   const mockSettings = [
     {
@@ -52,7 +52,7 @@ describe('/api/settings', () => {
     mockTaskService.mockImplementation(() => ({
       getAllSettings: mockGetAllSettings,
       upsertSetting: mockUpsertSetting,
-    } as any));
+    } as unknown as TaskService));
   });
 
   afterAll(() => {

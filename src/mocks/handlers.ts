@@ -12,7 +12,7 @@ export const handlers = [
     const newTask = {
       ...mockTask,
       id: Date.now(), // Simple ID generation for testing
-      ...(body as any),
+      ...(body as Record<string, unknown>),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -41,7 +41,7 @@ export const handlers = [
     
     const updatedTask = {
       ...task,
-      ...(body as any),
+      ...(body as Record<string, unknown>),
       updated_at: new Date().toISOString(),
     };
     
@@ -64,7 +64,9 @@ export const handlers = [
     const body = await request.json();
     
     // Simulate validation
-    if (!(body as any)?.task?.title) {
+    const bodyData = body as Record<string, unknown>;
+    const task = bodyData?.task as Record<string, unknown>;
+    if (!task?.title) {
       return HttpResponse.json(
         { error: 'タスクのタイトルは必須です' },
         { status: 400 }
@@ -75,8 +77,7 @@ export const handlers = [
   }),
 
   // OpenAI API mock (for testing AI service)
-  http.post('https://api.openai.com/v1/chat/completions', async ({ request }) => {
-    const body = await request.json();
+  http.post('https://api.openai.com/v1/chat/completions', async () => {
     
     // Simulate successful OpenAI response
     return HttpResponse.json({
@@ -105,13 +106,11 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  http.put('/api/schedule/:id', async ({ params, request }) => {
-    const body = await request.json();
+  http.put('/api/schedule/:id', async () => {
     return HttpResponse.json({ success: true });
   }),
 
-  http.post('/api/schedule/move', async ({ request }) => {
-    const body = await request.json();
+  http.post('/api/schedule/move', async () => {
     return HttpResponse.json({ success: true });
   }),
 
@@ -128,8 +127,7 @@ export const handlers = [
     });
   }),
 
-  http.post('/api/settings', async ({ request }) => {
-    const body = await request.json();
+  http.post('/api/settings', async () => {
     return HttpResponse.json({ success: true });
   }),
 
@@ -145,7 +143,7 @@ export const handlers = [
     const body = await request.json();
     return HttpResponse.json({
       id: Date.now(),
-      ...(body as any),
+      ...(body as Record<string, unknown>),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }, { status: 201 });

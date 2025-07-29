@@ -1,6 +1,6 @@
 import { TaskService } from '@/lib/services/taskService';
 import { cleanupDatabase, closeDatabase } from '@/lib/database/db';
-import { mockTaskInput, mockTask } from '@/test-utils/fixtures';
+import { mockTaskInput } from '@/test-utils/fixtures';
 import { Task, TaskInput } from '@/lib/types';
 
 describe('TaskService', () => {
@@ -529,7 +529,7 @@ describe('TaskService', () => {
 
   // moveTaskToDateの拡張テスト
   describe('moveTaskToDate', () => {
-    let testTask: any;
+    let testTask: Task;
 
     beforeEach(() => {
       testTask = taskService.createTask(mockTaskInput);
@@ -623,7 +623,7 @@ describe('TaskService', () => {
 
   // AI見積もり管理のテスト
   describe('AI Estimate Management', () => {
-    let testTask: any;
+    let testTask: Task;
 
     beforeEach(() => {
       testTask = taskService.createTask(mockTaskInput);
@@ -704,12 +704,10 @@ describe('TaskService', () => {
 
   // 時間競合チェックのテスト
   describe('Time Conflict Check', () => {
-    let testTask1: any;
-    let testTask2: any;
+    let testTask1: Task;
 
     beforeEach(() => {
       testTask1 = taskService.createTask({...mockTaskInput, title: 'タスク1'});
-      testTask2 = taskService.createTask({...mockTaskInput, title: 'タスク2'});
     });
 
     it('should detect time conflicts', () => {
@@ -755,7 +753,7 @@ describe('TaskService', () => {
 
   // 個別スケジュール更新のテスト
   describe('Individual Schedule Update', () => {
-    let testTask: any;
+    let testTask: Task;
 
     beforeEach(() => {
       testTask = taskService.createTask(mockTaskInput);

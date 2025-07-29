@@ -1,6 +1,6 @@
 import { GET, POST } from '@/app/api/tasks/route';
 import { TaskService } from '@/lib/services/taskService';
-import { cleanupDatabase, closeDatabase } from '@/lib/database/db';
+import { closeDatabase } from '@/lib/database/db';
 import { mockTaskInput, mockTask } from '@/test-utils/fixtures';
 import { NextRequest } from 'next/server';
 
@@ -23,7 +23,7 @@ describe('/api/tasks', () => {
       getTaskById: jest.fn(),
       updateTask: jest.fn(),
       deleteTask: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<TaskService>;
     (TaskService as jest.MockedClass<typeof TaskService>).mockImplementation(() => mockTaskService);
   });
 
@@ -147,7 +147,7 @@ describe('/api/tasks', () => {
     });
 
     it('should validate priority field', async () => {
-      const invalidInput = { ...mockTaskInput, priority: 'invalid' as any };
+      const invalidInput = { ...mockTaskInput, priority: 'invalid' as unknown };
 
       const request = new NextRequest('http://localhost:3000/api/tasks', {
         method: 'POST',
@@ -231,7 +231,7 @@ describe('/api/tasks', () => {
       });
 
       const response = await POST(request);
-      const data = await response.json();
+      await response.json();
 
       expect(response.status).toBe(201);
       expect(mockTaskService.createTask).toHaveBeenCalledWith({
@@ -283,7 +283,7 @@ describe('/api/tasks', () => {
     });
 
     it('should validate estimated_hours field type', async () => {
-      const invalidInput = { ...mockTaskInput, estimated_hours: 'invalid' as any };
+      const invalidInput = { ...mockTaskInput, estimated_hours: 'invalid' as unknown };
 
       const request = new NextRequest('http://localhost:3000/api/tasks', {
         method: 'POST',
@@ -321,7 +321,7 @@ describe('/api/tasks', () => {
     });
 
     it('should validate status field', async () => {
-      const invalidInput = { ...mockTaskInput, status: 'invalid' as any };
+      const invalidInput = { ...mockTaskInput, status: 'invalid' as unknown };
 
       const request = new NextRequest('http://localhost:3000/api/tasks', {
         method: 'POST',
@@ -343,8 +343,8 @@ describe('/api/tasks', () => {
       const validStatuses = ['pending', 'in_progress', 'on_hold', 'review', 'completed', 'cancelled'];
       
       for (const status of validStatuses) {
-        const validInput = { ...mockTaskInput, status: status as any };
-        const createdTask = { ...mockTask, status: status as any };
+        const validInput = { ...mockTaskInput, status: status as unknown };
+        const createdTask = { ...mockTask, status: status as unknown };
         mockTaskService.createTask.mockReturnValue(createdTask);
 
         const request = new NextRequest('http://localhost:3000/api/tasks', {

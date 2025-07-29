@@ -1,6 +1,6 @@
 import { GET } from '@/app/api/schedule/route';
 import { TaskService } from '@/lib/services/taskService';
-import { cleanupDatabase, closeDatabase } from '@/lib/database/db';
+import { closeDatabase } from '@/lib/database/db';
 import { mockTaskSchedule } from '@/test-utils/fixtures';
 
 // TaskServiceをモック
@@ -12,7 +12,7 @@ jest.mock('@/lib/services/taskService', () => ({
 
 describe('/api/schedule', () => {
   const mockTaskService = TaskService as jest.MockedClass<typeof TaskService>;
-  let mockGenerateWeeklySchedule: jest.MockedFunction<any>;
+  let mockGenerateWeeklySchedule: jest.MockedFunction<TaskService['generateWeeklySchedule']>;
 
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
@@ -23,7 +23,7 @@ describe('/api/schedule', () => {
     mockGenerateWeeklySchedule = jest.fn();
     mockTaskService.mockImplementation(() => ({
       generateWeeklySchedule: mockGenerateWeeklySchedule,
-    } as any));
+    } as unknown as TaskService));
   });
 
   afterAll(() => {

@@ -30,7 +30,7 @@ export const mockRouter = {
 };
 
 // fetch APIのモックヘルパー
-export const mockFetch = (response: any, status: number = 200) => {
+export const mockFetch = (response: unknown, status: number = 200) => {
   global.fetch = jest.fn().mockResolvedValueOnce({
     ok: status >= 200 && status < 300,
     status,
@@ -84,7 +84,7 @@ export const suppressConsoleError = () => {
 };
 
 // async/awaitでのエラーテスト用ヘルパー
-export const expectAsyncError = async (asyncFn: () => Promise<any>, expectedError?: string) => {
+export const expectAsyncError = async (asyncFn: () => Promise<unknown>, expectedError?: string) => {
   try {
     await asyncFn();
     throw new Error('Expected function to throw, but it did not');
@@ -102,7 +102,7 @@ export const submitTaskForm = async (formData: {
   priority: 'must' | 'want';
   category?: string;
 }) => {
-  const { getByLabelText, getByRole } = renderWithProviders(<div />); // 実際のコンポーネントで使用
+  renderWithProviders(<div />); // 実際のコンポーネントで使用
   
   // この関数は実際のテストで各コンポーネントに合わせて実装
   return formData;

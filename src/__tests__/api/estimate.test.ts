@@ -106,7 +106,7 @@ describe('/api/estimate', () => {
 
     it('should validate task.title is not undefined', async () => {
       const invalidTask = { ...mockTaskInput };
-      delete (invalidTask as any).title;
+      delete (invalidTask as Record<string, unknown>).title;
 
       const request = new NextRequest('http://localhost:3000/api/estimate', {
         method: 'POST',
