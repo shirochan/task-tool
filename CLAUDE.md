@@ -10,6 +10,10 @@ npm run dev          # Start development server with Turbopack
 npm run build        # Production build
 npm run start        # Start production server
 npm run lint         # Run ESLint
+npm run test         # Run tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+npm run test:ci      # Run tests for CI (no watch, with coverage)
 ```
 
 ### Common Development Tasks
@@ -24,7 +28,7 @@ npm run build && npm run start
 npm run build  # Includes TypeScript checking and linting
 
 # Run full quality checks (as done in CI)
-npm run lint && npm run build
+npm run lint && npm run test:ci && npm run build
 ```
 
 ### 🚨 Pre-Push Checklist (MANDATORY)
@@ -35,11 +39,14 @@ npm run lint && npm run build
 # 1. Run linter
 npm run lint
 
-# 2. Verify build
+# 2. Run tests
+npm run test:ci
+
+# 3. Verify build
 npm run build
 
-# 3. Optional: Run all quality checks in one command
-npm run lint && npm run build
+# 4. Optional: Run all quality checks in one command
+npm run lint && npm run test:ci && npm run build
 ```
 
 **Why this is critical:**
@@ -51,6 +58,7 @@ npm run lint && npm run build
 **What to check:**
 - ✅ No TypeScript errors
 - ✅ No ESLint errors
+- ✅ All tests pass (62+ tests currently)
 - ✅ Build completes successfully
 
 **If any check fails:**

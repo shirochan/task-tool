@@ -18,7 +18,8 @@ export class TaskService {
   }
 
   getTaskById(id: number): Task | null {
-    return statements.getTaskById.get(id) as Task | null;
+    const result = statements.getTaskById.get(id) as Task | undefined;
+    return result || null;
   }
 
   getAllTasks(): Task[] {
@@ -26,7 +27,7 @@ export class TaskService {
   }
 
   updateTask(id: number, taskInput: Partial<TaskInput>): Task | null {
-    const existingTask = statements.getTaskById.get(id) as Task | null;
+    const existingTask = statements.getTaskById.get(id) as Task | undefined;
     if (!existingTask) {
       return null;
     }
