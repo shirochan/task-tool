@@ -102,3 +102,18 @@ export const mockUserSettings = {
   ai_enabled: true,
   notification_enabled: true,
 };
+
+// TaskFormコンポーネント用のモックProps
+export const mockTaskFormProps = {
+  task: null,
+  onTaskCreated: jest.fn(),
+  onTaskUpdated: jest.fn(),
+  onCancel: jest.fn(),
+};
+
+export const mockTaskFormPropsWithTask = {
+  task: mockTask,
+  onTaskCreated: jest.fn(),
+  onTaskUpdated: jest.fn(),
+  onCancel: jest.fn(),
+};
