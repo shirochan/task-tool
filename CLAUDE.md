@@ -58,7 +58,7 @@ npm run lint && npm run test:ci && npm run build
 **What to check:**
 - ✅ No TypeScript errors
 - ✅ No ESLint errors
-- ✅ All tests pass (62+ tests currently)
+- ✅ All tests pass (184+ tests currently, 93.5% service layer coverage)
 - ✅ Build completes successfully
 
 **If any check fails:**
@@ -94,7 +94,8 @@ This is a Japanese-language AI-powered task management application built with Ne
 - **Database**: SQLite with better-sqlite3 (local file storage)
 - **AI Integration**: OpenAI GPT-4 API with intelligent fallback
 - **Forms**: React Hook Form + Zod validation
-- **CI/CD**: GitHub Actions (automated linting, building, security scanning)
+- **Testing**: Jest + React Testing Library + In-memory SQLite
+- **CI/CD**: GitHub Actions (automated linting, testing, building, security scanning)
 
 ### High-Level Architecture
 
@@ -194,6 +195,52 @@ custom_categories: id, name, color, timestamps
 - Settings components should use modal patterns for consistent UX
 - Form components should include proper validation and error handling
 
+### Testing Environment
+
+#### Test Infrastructure
+- **Framework**: Jest 29 with Next.js 15 integration
+- **Component Testing**: React Testing Library for UI component testing
+- **Database Testing**: In-memory SQLite for isolated, fast tests
+- **API Mocking**: MSW (Mock Service Worker) for API endpoint testing
+- **AI Service Mocking**: Complete OpenAI API mocking with fallback testing
+
+#### Test Architecture
+- **API Tests** (14 tests): Complete endpoint testing for all routes
+- **Service Tests** (76 tests): Comprehensive business logic testing
+  - TaskService: 100% coverage (CRUD, scheduling, AI estimates, settings, categories)
+  - AIService: 85.29% coverage (OpenAI integration with fallbacks)
+- **Component Tests** (24 tests): UI component behavior and integration
+- **Utility Tests** (70 tests): Core utilities and helper functions
+
+#### Coverage Requirements
+- **Service Layer**: 93.5% achieved (target: 85%+)
+- **Database Layer**: 90.9% achieved
+- **Overall Project**: Comprehensive coverage maintained
+- **Total Tests**: 184+ tests ensuring system reliability
+
+#### Test Patterns
+- **Database Isolation**: Each test uses clean in-memory database
+- **Transaction Testing**: Database operations tested with proper rollback
+- **Error Boundary Testing**: Comprehensive error case coverage
+- **Async Operation Testing**: Proper async/await patterns with timeouts
+- **Mock Strategy**: Consistent mocking patterns for external dependencies
+
+#### Running Tests
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode for development
+npm run test:coverage # Run with coverage report
+npm run test:ci       # CI mode (no watch, with coverage)
+```
+
+#### Test Development Guidelines
+- Write tests before or alongside feature implementation
+- Ensure proper cleanup in beforeEach/afterEach hooks
+- Use descriptive test names that explain the scenario
+- Test both success and error cases
+- Maintain test isolation (no shared state between tests)
+- Mock external dependencies appropriately
+
 ### Environment Setup
 
 #### Required Environment Variables
@@ -233,14 +280,16 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 Before any code reaches production:
 1. ESLint checks must pass
 2. TypeScript compilation must succeed
-3. Build process must complete successfully
-4. Security scans must pass
+3. All tests must pass (184+ tests)
+4. Test coverage requirements must be met (Service layer 85%+)
+5. Build process must complete successfully
+6. Security scans must pass
 
 #### Development Workflow
 1. Create feature branch from main
 2. Implement changes
-3. Run `npm run lint && npm run build`
+3. Run `npm run lint && npm run test:ci && npm run build`
 4. Create Pull Request
-5. CI pipeline runs automatically
+5. CI pipeline runs automatically (lint, test, build, security)
 6. Code review and approval
 7. Merge to main triggers deployment pipeline
