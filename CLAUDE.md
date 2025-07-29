@@ -12,27 +12,19 @@ npm run start        # Start production server
 npm run lint         # Run ESLint
 ```
 
-### Testing
-```bash
-npm test             # Run all tests
-npm run test:watch   # Run tests in watch mode
-npm run test:coverage # Run tests with coverage report
-npm run test:ci      # Run tests in CI mode (no watch, with coverage)
-```
-
 ### Common Development Tasks
 ```bash
 # Run development server
 npm run dev
 
-# Build and test production
+# Build and start production
 npm run build && npm run start
 
 # Check for type errors and linting issues
 npm run build  # Includes TypeScript checking and linting
 
 # Run full quality checks (as done in CI)
-npm run lint && npm run test:ci && npm run build
+npm run lint && npm run build
 ```
 
 ### 🚨 Pre-Push Checklist (MANDATORY)
@@ -40,17 +32,14 @@ npm run lint && npm run test:ci && npm run build
 **IMPORTANT**: Always run these commands locally before pushing to remote repository:
 
 ```bash
-# 1. Run all tests in CI mode
-npm run test:ci
-
-# 2. Run linter
+# 1. Run linter
 npm run lint
 
-# 3. Verify build
+# 2. Verify build
 npm run build
 
-# 4. Optional: Run all quality checks in one command
-npm run lint && npm run test:ci && npm run build
+# 3. Optional: Run all quality checks in one command
+npm run lint && npm run build
 ```
 
 **Why this is critical:**
@@ -60,11 +49,9 @@ npm run lint && npm run test:ci && npm run build
 - Maintains stable main branch
 
 **What to check:**
-- ✅ All tests pass (0 failures)
 - ✅ No TypeScript errors
 - ✅ No ESLint errors
 - ✅ Build completes successfully
-- ✅ Test coverage remains adequate
 
 **If any check fails:**
 - Fix the issues locally
@@ -99,8 +86,7 @@ This is a Japanese-language AI-powered task management application built with Ne
 - **Database**: SQLite with better-sqlite3 (local file storage)
 - **AI Integration**: OpenAI GPT-4 API with intelligent fallback
 - **Forms**: React Hook Form + Zod validation
-- **Testing**: Jest + React Testing Library (97 comprehensive tests)
-- **CI/CD**: GitHub Actions (automated testing, linting, security scanning)
+- **CI/CD**: GitHub Actions (automated linting, building, security scanning)
 
 ### High-Level Architecture
 
@@ -153,7 +139,7 @@ custom_categories: id, name, color, timestamps
 - **Lazy initialization**: Database connections are created only when needed
 - **Prepared statements**: All database queries use prepared statements through getter methods
 - **Graceful handling**: Database operations include proper error handling and logging
-- **Instance methods**: TaskService uses instance methods for better testability and consistency
+- **Instance methods**: TaskService uses instance methods for better maintainability and consistency
 
 #### AI Integration Patterns
 - **Fallback strategy**: OpenAI API failures gracefully fall back to mock estimation logic
@@ -213,69 +199,12 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 - Database file: `data/tasks.db` (created automatically)
 - Schema is applied automatically from `src/lib/database/schema.sql`
 
-### Testing the Application
-
-#### Automated Testing Suite
-The application includes a comprehensive test suite with 97 tests covering:
-
-- **API Endpoint Tests** (`src/__tests__/api/`)
-  - `/api/tasks` CRUD operations
-  - `/api/estimate` AI estimation functionality
-  - Error handling and edge cases
-
-- **Service Layer Tests** (`src/__tests__/services/`)
-  - `TaskService` business logic and database operations
-  - `AIService` OpenAI integration and fallback mechanisms
-  - Edge cases and error scenarios
-
-- **Component Tests** (`src/__tests__/components/`)
-  - `TaskManager` orchestration and tab navigation
-  - `TaskForm` form validation and AI integration
-  - `WeeklySchedule` calendar visualization and scheduling
-
-#### Test Configuration
-- **Framework**: Jest with Next.js integration
-- **Environment**: jsdom for component tests, node for API tests
-- **Coverage**: Comprehensive coverage reporting with lcov format
-- **Mocking**: Service-level mocking strategy for reliable tests
-
-#### Running Tests
-```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Run in watch mode during development
-npm run test:watch
-
-# Run in CI mode (used by GitHub Actions)
-npm run test:ci
-```
-
-#### Manual Testing Workflow
-1. Start development server: `npm run dev`
-2. Test task creation with and without AI estimation
-3. Generate weekly schedule to verify algorithm
-4. Test responsive design on different screen sizes
-5. Verify database persistence across restarts
-
-#### Key Test Scenarios
-- Task CRUD operations
-- AI estimation (with and without OpenAI API)
-- Schedule generation with various task combinations
-- Form validation and error handling
-- Mobile responsive behavior
-
 ### CI/CD Pipeline
 
 #### GitHub Actions Workflows
 - **CI Workflow** (`.github/workflows/ci.yml`)
-  - Automated testing on Node.js 20.x
-  - ESLint and TypeScript checking
+  - ESLint and TypeScript checking on Node.js 24.x
   - Build verification
-  - Coverage reporting to Codecov
 
 - **Security Workflow** (`.github/workflows/security.yml`)
   - npm audit for dependency vulnerabilities
@@ -283,7 +212,7 @@ npm run test:ci
   - Weekly scheduled security scans
 
 - **Docker Workflow** (`.github/workflows/docker.yml`)
-  - Docker image building and testing
+  - Docker image building
   - Container registry publishing (on main branch)
 
 #### Dependency Management
@@ -294,16 +223,15 @@ npm run test:ci
 
 #### Quality Gates
 Before any code reaches production:
-1. All tests must pass
-2. ESLint checks must pass
-3. TypeScript compilation must succeed
-4. Build process must complete successfully
-5. Security scans must pass
+1. ESLint checks must pass
+2. TypeScript compilation must succeed
+3. Build process must complete successfully
+4. Security scans must pass
 
 #### Development Workflow
 1. Create feature branch from main
-2. Implement changes with tests
-3. Run `npm run lint && npm run test:ci && npm run build`
+2. Implement changes
+3. Run `npm run lint && npm run build`
 4. Create Pull Request
 5. CI pipeline runs automatically
 6. Code review and approval
