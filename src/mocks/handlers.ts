@@ -77,7 +77,29 @@ export const handlers = [
   }),
 
   // OpenAI API mock (for testing AI service)
-  http.post('https://api.openai.com/v1/chat/completions', async () => {
+  http.post('https://api.openai.com/v1/chat/completions', async ({ request }) => {
+    const body = await request.json();
+    
+    // Validate request body
+    const { model, messages, temperature } = body as Record<string, unknown>;
+    if (!model || typeof model !== 'string') {
+      return HttpResponse.json(
+        { error: 'The "model" field is required and must be a string.' },
+        { status: 400 }
+      );
+    }
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return HttpResponse.json(
+        { error: 'The "messages" field is required and must be a non-empty array.' },
+        { status: 400 }
+      );
+    }
+    if (temperature !== undefined && typeof temperature !== 'number') {
+      return HttpResponse.json(
+        { error: 'The "temperature" field, if provided, must be a number.' },
+        { status: 400 }
+      );
+    }
     
     // Simulate successful OpenAI response
     return HttpResponse.json({

@@ -332,16 +332,22 @@ describe('TaskService', () => {
       });
 
       it('should include scheduled tasks in correct dates', () => {
-        // 今週の月曜日の日付を取得
-        const mondayDate = new Date();
-        const monday = new Date(mondayDate.setDate(mondayDate.getDate() - (mondayDate.getDay() + 6) % 7));
-        const mondayStr = monday.toISOString().split('T')[0];
+        // Use fake timers with fixed date (2024-01-01 is Monday)
+        jest.useFakeTimers();
+        const fixedDate = new Date('2024-01-01T10:00:00Z');
+        jest.setSystemTime(fixedDate);
+        
+        // 固定の月曜日の日付を使用（2024年1月1日は月曜日）
+        const mondayStr = '2024-01-01';
 
         taskService.createTaskSchedule(testTask.id, 1, '09:00', '11:30', mondayStr);
 
         const weeklySchedule = taskService.generateWeeklySchedule();
         expect(weeklySchedule[mondayStr]).toHaveLength(1);
         expect(weeklySchedule[mondayStr][0].title).toBe(testTask.title);
+        
+        // Restore real timers
+        jest.useRealTimers();
       });
     });
 
@@ -668,6 +674,11 @@ describe('TaskService', () => {
     });
 
     it('should get latest estimate for task', () => {
+      // Use fake timers for deterministic timestamps
+      jest.useFakeTimers();
+      const fixedDate = new Date('2024-01-01T10:00:00Z');
+      jest.setSystemTime(fixedDate);
+      
       // Create first estimate
       taskService.createAIEstimate({
         task_id: testTask.id,
@@ -675,11 +686,8 @@ describe('TaskService', () => {
         reasoning: '最初の見積もり'
       });
       
-      // Wait a moment to ensure different timestamps
-      const now = new Date().getTime();
-      while (new Date().getTime() === now) {
-        // Wait for millisecond to change
-      }
+      // Advance time to ensure different timestamps
+      jest.advanceTimersByTime(1000);
       
       // Create second estimate
       taskService.createAIEstimate({
@@ -694,6 +702,9 @@ describe('TaskService', () => {
       // Check that we got an estimate with the expected hours (may be first or second)
       expect([2.0, 3.0]).toContain(latestEstimate?.estimated_hours);
       expect(['最初の見積もり', '更新された見積もり']).toContain(latestEstimate?.reasoning);
+      
+      // Restore real timers
+      jest.useRealTimers();
     });
 
     it('should return null for non-existent task estimate', () => {
