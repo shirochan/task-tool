@@ -2,18 +2,20 @@ import Database from 'better-sqlite3';
 import { readFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
 
-// データベースファイルパス
-const dbPath = path.join(process.cwd(), 'data', 'tasks.db');
+// データベースファイルパス（テスト環境では:memory:を使用）
+const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : path.join(process.cwd(), 'data', 'tasks.db');
 
 // SQLiteデータベース接続（遅延初期化）
 let db: Database.Database | null = null;
 
 function getDatabase(): Database.Database {
   if (!db) {
-    // data ディレクトリが存在しない場合は作成
-    const dataDir = path.dirname(dbPath);
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
+    // 本番環境のみディレクトリ作成
+    if (dbPath !== ':memory:') {
+      const dataDir = path.dirname(dbPath);
+      if (!existsSync(dataDir)) {
+        mkdirSync(dataDir, { recursive: true });
+      }
     }
     
     db = new Database(dbPath);
@@ -34,6 +36,24 @@ function getDatabase(): Database.Database {
 // データベース初期化
 export function initializeDatabase() {
   getDatabase();
+}
+
+// テスト用: データベースクリーンアップ関数
+export function cleanupDatabase() {
+  if (db) {
+    const tables = ['tasks', 'task_schedules', 'ai_estimates', 'user_settings', 'custom_categories'];
+    tables.forEach(table => {
+      db!.exec(`DELETE FROM ${table}`);
+    });
+  }
+}
+
+// テスト用: データベース接続を閉じる
+export function closeDatabase() {
+  if (db) {
+    db.close();
+    db = null;
+  }
 }
 
 // データベース接続のプリペアドステートメント（遅延初期化）
@@ -246,10 +266,3 @@ export function runTransaction<T>(callback: (db: Database.Database) => T): T {
   return transaction(database);
 }
 
-// データベース接続終了
-export function closeDatabase() {
-  if (db) {
-    db.close();
-    db = null;
-  }
-}

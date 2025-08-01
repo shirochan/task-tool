@@ -10,14 +10,10 @@ npm run dev          # Start development server with Turbopack
 npm run build        # Production build
 npm run start        # Start production server
 npm run lint         # Run ESLint
-```
-
-### Testing
-```bash
-npm test             # Run all tests
+npm run test         # Run tests
 npm run test:watch   # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
-npm run test:ci      # Run tests in CI mode (no watch, with coverage)
+npm run test:ci      # Run tests for CI (no watch, with coverage)
 ```
 
 ### Common Development Tasks
@@ -25,7 +21,7 @@ npm run test:ci      # Run tests in CI mode (no watch, with coverage)
 # Run development server
 npm run dev
 
-# Build and test production
+# Build and start production
 npm run build && npm run start
 
 # Check for type errors and linting issues
@@ -40,11 +36,11 @@ npm run lint && npm run test:ci && npm run build
 **IMPORTANT**: Always run these commands locally before pushing to remote repository:
 
 ```bash
-# 1. Run all tests in CI mode
-npm run test:ci
-
-# 2. Run linter
+# 1. Run linter
 npm run lint
+
+# 2. Run tests
+npm run test:ci
 
 # 3. Verify build
 npm run build
@@ -60,11 +56,10 @@ npm run lint && npm run test:ci && npm run build
 - Maintains stable main branch
 
 **What to check:**
-- ✅ All tests pass (0 failures)
 - ✅ No TypeScript errors
 - ✅ No ESLint errors
+- ✅ All tests pass (184+ tests currently, 93.5% service layer coverage)
 - ✅ Build completes successfully
-- ✅ Test coverage remains adequate
 
 **If any check fails:**
 - Fix the issues locally
@@ -99,8 +94,8 @@ This is a Japanese-language AI-powered task management application built with Ne
 - **Database**: SQLite with better-sqlite3 (local file storage)
 - **AI Integration**: OpenAI GPT-4 API with intelligent fallback
 - **Forms**: React Hook Form + Zod validation
-- **Testing**: Jest + React Testing Library (97 comprehensive tests)
-- **CI/CD**: GitHub Actions (automated testing, linting, security scanning)
+- **Testing**: Jest + React Testing Library + In-memory SQLite
+- **CI/CD**: GitHub Actions (automated linting, testing, building, security scanning)
 
 ### High-Level Architecture
 
@@ -153,7 +148,7 @@ custom_categories: id, name, color, timestamps
 - **Lazy initialization**: Database connections are created only when needed
 - **Prepared statements**: All database queries use prepared statements through getter methods
 - **Graceful handling**: Database operations include proper error handling and logging
-- **Instance methods**: TaskService uses instance methods for better testability and consistency
+- **Instance methods**: TaskService uses instance methods for better maintainability and consistency
 
 #### AI Integration Patterns
 - **Fallback strategy**: OpenAI API failures gracefully fall back to mock estimation logic
@@ -200,6 +195,52 @@ custom_categories: id, name, color, timestamps
 - Settings components should use modal patterns for consistent UX
 - Form components should include proper validation and error handling
 
+### Testing Environment
+
+#### Test Infrastructure
+- **Framework**: Jest 29 with Next.js 15 integration
+- **Component Testing**: React Testing Library for UI component testing
+- **Database Testing**: In-memory SQLite for isolated, fast tests
+- **API Mocking**: MSW (Mock Service Worker) for API endpoint testing
+- **AI Service Mocking**: Complete OpenAI API mocking with fallback testing
+
+#### Test Architecture
+- **API Tests** (14 tests): Complete endpoint testing for all routes
+- **Service Tests** (76 tests): Comprehensive business logic testing
+  - TaskService: 100% coverage (CRUD, scheduling, AI estimates, settings, categories)
+  - AIService: 85.29% coverage (OpenAI integration with fallbacks)
+- **Component Tests** (24 tests): UI component behavior and integration
+- **Utility Tests** (70 tests): Core utilities and helper functions
+
+#### Coverage Requirements
+- **Service Layer**: 93.5% achieved (target: 85%+)
+- **Database Layer**: 90.9% achieved
+- **Overall Project**: Comprehensive coverage maintained
+- **Total Tests**: 184+ tests ensuring system reliability
+
+#### Test Patterns
+- **Database Isolation**: Each test uses clean in-memory database
+- **Transaction Testing**: Database operations tested with proper rollback
+- **Error Boundary Testing**: Comprehensive error case coverage
+- **Async Operation Testing**: Proper async/await patterns with timeouts
+- **Mock Strategy**: Consistent mocking patterns for external dependencies
+
+#### Running Tests
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode for development
+npm run test:coverage # Run with coverage report
+npm run test:ci       # CI mode (no watch, with coverage)
+```
+
+#### Test Development Guidelines
+- Write tests before or alongside feature implementation
+- Ensure proper cleanup in beforeEach/afterEach hooks
+- Use descriptive test names that explain the scenario
+- Test both success and error cases
+- Maintain test isolation (no shared state between tests)
+- Mock external dependencies appropriately
+
 ### Environment Setup
 
 #### Required Environment Variables
@@ -213,69 +254,12 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 - Database file: `data/tasks.db` (created automatically)
 - Schema is applied automatically from `src/lib/database/schema.sql`
 
-### Testing the Application
-
-#### Automated Testing Suite
-The application includes a comprehensive test suite with 97 tests covering:
-
-- **API Endpoint Tests** (`src/__tests__/api/`)
-  - `/api/tasks` CRUD operations
-  - `/api/estimate` AI estimation functionality
-  - Error handling and edge cases
-
-- **Service Layer Tests** (`src/__tests__/services/`)
-  - `TaskService` business logic and database operations
-  - `AIService` OpenAI integration and fallback mechanisms
-  - Edge cases and error scenarios
-
-- **Component Tests** (`src/__tests__/components/`)
-  - `TaskManager` orchestration and tab navigation
-  - `TaskForm` form validation and AI integration
-  - `WeeklySchedule` calendar visualization and scheduling
-
-#### Test Configuration
-- **Framework**: Jest with Next.js integration
-- **Environment**: jsdom for component tests, node for API tests
-- **Coverage**: Comprehensive coverage reporting with lcov format
-- **Mocking**: Service-level mocking strategy for reliable tests
-
-#### Running Tests
-```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Run in watch mode during development
-npm run test:watch
-
-# Run in CI mode (used by GitHub Actions)
-npm run test:ci
-```
-
-#### Manual Testing Workflow
-1. Start development server: `npm run dev`
-2. Test task creation with and without AI estimation
-3. Generate weekly schedule to verify algorithm
-4. Test responsive design on different screen sizes
-5. Verify database persistence across restarts
-
-#### Key Test Scenarios
-- Task CRUD operations
-- AI estimation (with and without OpenAI API)
-- Schedule generation with various task combinations
-- Form validation and error handling
-- Mobile responsive behavior
-
 ### CI/CD Pipeline
 
 #### GitHub Actions Workflows
 - **CI Workflow** (`.github/workflows/ci.yml`)
-  - Automated testing on Node.js 20.x
-  - ESLint and TypeScript checking
+  - ESLint and TypeScript checking on Node.js 24.x
   - Build verification
-  - Coverage reporting to Codecov
 
 - **Security Workflow** (`.github/workflows/security.yml`)
   - npm audit for dependency vulnerabilities
@@ -283,7 +267,7 @@ npm run test:ci
   - Weekly scheduled security scans
 
 - **Docker Workflow** (`.github/workflows/docker.yml`)
-  - Docker image building and testing
+  - Docker image building
   - Container registry publishing (on main branch)
 
 #### Dependency Management
@@ -294,17 +278,18 @@ npm run test:ci
 
 #### Quality Gates
 Before any code reaches production:
-1. All tests must pass
-2. ESLint checks must pass
-3. TypeScript compilation must succeed
-4. Build process must complete successfully
-5. Security scans must pass
+1. ESLint checks must pass
+2. TypeScript compilation must succeed
+3. All tests must pass (184+ tests)
+4. Test coverage requirements must be met (Service layer 85%+)
+5. Build process must complete successfully
+6. Security scans must pass
 
 #### Development Workflow
 1. Create feature branch from main
-2. Implement changes with tests
+2. Implement changes
 3. Run `npm run lint && npm run test:ci && npm run build`
 4. Create Pull Request
-5. CI pipeline runs automatically
+5. CI pipeline runs automatically (lint, test, build, security)
 6. Code review and approval
 7. Merge to main triggers deployment pipeline

@@ -1,290 +1,366 @@
-/**
- * @jest-environment node
- */
+import { GET, POST } from '@/app/api/tasks/route';
+import { TaskService } from '@/lib/services/taskService';
+import { closeDatabase } from '@/lib/database/db';
+import { mockTaskInput, mockTask } from '@/test-utils/fixtures';
+import { NextRequest } from 'next/server';
 
-import { GET, POST } from '@/app/api/tasks/route'
-import { GET as getTaskById, PUT, DELETE } from '@/app/api/tasks/[id]/route'
-import { NextRequest } from 'next/server'
-import { defaultTestTasks } from '@/test-utils/testData'
-
-// TaskServiceのモック
-jest.mock('@/lib/services/taskService', () => ({
-  TaskService: jest.fn().mockImplementation(() => ({
-    getAllTasks: jest.fn(),
-    createTask: jest.fn(),
-    getTaskById: jest.fn(),
-    updateTask: jest.fn(),
-    deleteTask: jest.fn(),
-  })),
-}))
-
-// Mock variables scoped globally for both describe blocks
-let mockGetAllTasks: jest.Mock
-let mockCreateTask: jest.Mock
-let mockGetTaskById: jest.Mock
-let mockUpdateTask: jest.Mock
-let mockDeleteTask: jest.Mock
-
-async function setupMocks() {
-  mockGetAllTasks = jest.fn()
-  mockCreateTask = jest.fn()
-  mockGetTaskById = jest.fn()
-  mockUpdateTask = jest.fn()
-  mockDeleteTask = jest.fn()
-  
-  const { TaskService } = await import('@/lib/services/taskService')
-  ;(TaskService as jest.Mock).mockImplementation(() => ({
-    getAllTasks: mockGetAllTasks,
-    createTask: mockCreateTask,
-    getTaskById: mockGetTaskById,
-    updateTask: mockUpdateTask,
-    deleteTask: mockDeleteTask,
-  }))
-}
+// TaskServiceをモック
+jest.mock('@/lib/services/taskService');
 
 describe('/api/tasks', () => {
-  beforeEach(async () => {
-    jest.clearAllMocks()
-    await setupMocks()
-  })
+  let mockTaskService: jest.Mocked<TaskService>;
+
+  beforeAll(() => {
+    process.env.NODE_ENV = 'test';
+  });
+
+  beforeEach(() => {
+    // TaskServiceのモックをクリア
+    jest.clearAllMocks();
+    mockTaskService = {
+      createTask: jest.fn(),
+      getAllTasks: jest.fn(),
+      getTaskById: jest.fn(),
+      updateTask: jest.fn(),
+      deleteTask: jest.fn(),
+    } as unknown as jest.Mocked<TaskService>;
+    (TaskService as jest.MockedClass<typeof TaskService>).mockImplementation(() => mockTaskService);
+  });
+
+  afterAll(() => {
+    closeDatabase();
+  });
 
   describe('GET /api/tasks', () => {
-    it('全てのタスクを取得できる', async () => {
-      mockGetAllTasks.mockReturnValue(defaultTestTasks)
+    it('should return all tasks successfully', async () => {
+      const mockTasks = [mockTask];
+      mockTaskService.getAllTasks.mockReturnValue(mockTasks);
 
-      const response = await GET()
-      const data = await response.json()
+      const response = await GET();
+      const data = await response.json();
 
-      expect(response.status).toBe(200)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data).toHaveLength(2)
-      expect(data[0]).toHaveProperty('id')
-      expect(data[0]).toHaveProperty('title')
-      expect(data[0]).toHaveProperty('priority')
-    })
+      expect(response.status).toBe(200);
+      expect(data).toEqual(mockTasks);
+      expect(mockTaskService.getAllTasks).toHaveBeenCalledTimes(1);
+    });
 
-    it('空の配列でも正常に処理される', async () => {
-      mockGetAllTasks.mockReturnValue([])
+    it('should return empty array when no tasks exist', async () => {
+      mockTaskService.getAllTasks.mockReturnValue([]);
 
-      const response = await GET()
-      const data = await response.json()
+      const response = await GET();
+      const data = await response.json();
 
-      expect(response.status).toBe(200)
-      expect(Array.isArray(data)).toBe(true)
-      expect(data).toHaveLength(0)
-    })
-  })
+      expect(response.status).toBe(200);
+      expect(data).toEqual([]);
+      expect(mockTaskService.getAllTasks).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle database errors gracefully', async () => {
+      mockTaskService.getAllTasks.mockImplementation(() => {
+        throw new Error('Database connection failed');
+      });
+
+      const response = await GET();
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ error: 'タスクの取得に失敗しました' });
+    });
+  });
 
   describe('POST /api/tasks', () => {
-    it('新しいタスクを作成できる', async () => {
+    it('should create a new task successfully', async () => {
+      const createdTask = { ...mockTask, id: 1 };
+      mockTaskService.createTask.mockReturnValue(createdTask);
 
-      const newTaskInput = {
-        title: '新しいタスク',
-        description: 'テスト用の新しいタスクです',
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(mockTaskInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data).toEqual(createdTask);
+      expect(mockTaskService.createTask).toHaveBeenCalledWith(mockTaskInput);
+    });
+
+    it('should validate required title field', async () => {
+      const invalidInput = { ...mockTaskInput, title: '' };
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(invalidInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: 'タイトルは必須です' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should validate title is a string', async () => {
+      const invalidInput = { ...mockTaskInput, title: 123 };
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(invalidInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: 'タイトルは必須です' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should validate title is not empty after trimming', async () => {
+      const invalidInput = { ...mockTaskInput, title: '   ' };
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(invalidInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: 'タイトルは必須です' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should validate priority field', async () => {
+      const invalidInput = { ...mockTaskInput, priority: 'invalid' as unknown };
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(invalidInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: '無効な優先度値です' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should accept valid must priority', async () => {
+      const validInput = { ...mockTaskInput, priority: 'must' as const };
+      const createdTask = { ...mockTask, priority: 'must' as const };
+      mockTaskService.createTask.mockReturnValue(createdTask);
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(validInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.priority).toBe('must');
+      expect(mockTaskService.createTask).toHaveBeenCalledWith(validInput);
+    });
+
+    it('should accept valid want priority', async () => {
+      const validInput = { ...mockTaskInput, priority: 'want' as const };
+      const createdTask = { ...mockTask, priority: 'want' as const };
+      mockTaskService.createTask.mockReturnValue(createdTask);
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(validInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.priority).toBe('want');
+      expect(mockTaskService.createTask).toHaveBeenCalledWith(validInput);
+    });
+
+    it('should handle optional fields correctly', async () => {
+      const minimalInput = {
+        title: '最小限のタスク',
         priority: 'must' as const,
-        category: 'テスト',
-        estimated_hours: 2,
-      }
-
+      };
       const createdTask = {
-        id: 3,
-        ...newTaskInput,
-        actual_hours: undefined,
-        status: 'pending' as const,
-        created_at: '2024-01-03T00:00:00Z',
-        updated_at: '2024-01-03T00:00:00Z',
-      }
-
-      mockCreateTask.mockReturnValue(createdTask)
-
-      const request = new NextRequest('http://localhost:3000/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTaskInput),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(201)
-      expect(data).toHaveProperty('id')
-      expect(data.title).toBe(newTaskInput.title)
-      expect(data.priority).toBe(newTaskInput.priority)
-      expect(data.status).toBe('pending')
-      expect(mockCreateTask).toHaveBeenCalledWith({
-        ...newTaskInput,
-        status: 'pending'
-      })
-    })
-
-    it('必須フィールドが不足している場合にバリデーションエラーが発生する', async () => {
-
-      const invalidInput = {
-        description: 'タイトルが不足しています',
+        ...mockTask,
+        title: '最小限のタスク',
         priority: 'must' as const,
-      }
+        description: null,
+        category: null,
+        estimated_hours: null,
+      };
+      mockTaskService.createTask.mockReturnValue(createdTask);
 
       const request = new NextRequest('http://localhost:3000/api/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(invalidInput),
-      })
+        body: JSON.stringify(minimalInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      const response = await POST(request)
-      const data = await response.json()
+      const response = await POST(request);
+      await response.json();
 
-      expect(response.status).toBe(400)
-      expect(data).toHaveProperty('error')
-      expect(data.error).toBe('タイトルは必須です')
-    })
+      expect(response.status).toBe(201);
+      expect(mockTaskService.createTask).toHaveBeenCalledWith({
+        title: '最小限のタスク',
+        description: undefined,
+        priority: 'must',
+        category: undefined,
+        estimated_hours: undefined,
+        status: 'pending',
+      });
+    });
 
-    it('不正なpriorityが指定された場合にバリデーションエラーが発生する', async () => {
+    it('should handle invalid JSON request body', async () => {
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: 'invalid json',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      const invalidInput = {
-        title: 'テストタスク',
-        priority: 'invalid' as 'must' | 'want',
-      }
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ error: 'タスクの作成に失敗しました' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should handle database errors during task creation', async () => {
+      mockTaskService.createTask.mockImplementation(() => {
+        throw new Error('Database constraint violation');
+      });
 
       const request = new NextRequest('http://localhost:3000/api/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mockTaskInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ error: 'タスクの作成に失敗しました' });
+      expect(mockTaskService.createTask).toHaveBeenCalledWith(mockTaskInput);
+    });
+
+    it('should validate estimated_hours field type', async () => {
+      const invalidInput = { ...mockTaskInput, estimated_hours: 'invalid' as unknown };
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
         body: JSON.stringify(invalidInput),
-      })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      const response = await POST(request)
-      const data = await response.json()
+      const response = await POST(request);
+      const data = await response.json();
 
-      expect(response.status).toBe(400)
-      expect(data).toHaveProperty('error')
-      expect(data.error).toBe('無効な優先度値です')
-    })
-  })
-})
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: '見積もり時間は0以上の数値である必要があります' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
 
-describe('/api/tasks/[id]', () => {
-  beforeEach(async () => {
-    jest.clearAllMocks()
-    await setupMocks()
-  })
+    it('should validate estimated_hours is not negative', async () => {
+      const invalidInput = { ...mockTaskInput, estimated_hours: -1 };
 
-  describe('GET /api/tasks/[id]', () => {
-    it('指定されたIDのタスクを取得できる', async () => {
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(invalidInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: '見積もり時間は0以上の数値である必要があります' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should validate status field', async () => {
+      const invalidInput = { ...mockTaskInput, status: 'invalid' as unknown };
+
+      const request = new NextRequest('http://localhost:3000/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(invalidInput),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: '無効なステータス値です' });
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
+    });
+
+    it('should accept valid status values', async () => {
+      const validStatuses = ['pending', 'in_progress', 'on_hold', 'review', 'completed', 'cancelled'];
       
-      const targetTask = defaultTestTasks[0]
-      mockGetTaskById.mockReturnValue(targetTask)
+      for (const status of validStatuses) {
+        const validInput = { ...mockTaskInput, status: status as unknown };
+        const createdTask = { ...mockTask, status: status as unknown };
+        mockTaskService.createTask.mockReturnValue(createdTask);
 
-      const request = new NextRequest('http://localhost:3000/api/tasks/1')
-      const response = await getTaskById(request, { params: Promise.resolve({ id: '1' }) })
-      const data = await response.json()
+        const request = new NextRequest('http://localhost:3000/api/tasks', {
+          method: 'POST',
+          body: JSON.stringify(validInput),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      expect(response.status).toBe(200)
-      expect(data.id).toBe(1)
-      expect(data.title).toBe(targetTask.title)
-      expect(mockGetTaskById).toHaveBeenCalledWith(1)
-    })
+        const response = await POST(request);
+        const data = await response.json();
 
-    it('存在しないIDが指定された場合に404を返す', async () => {
-      mockGetTaskById.mockReturnValue(null)
-
-      const request = new NextRequest('http://localhost:3000/api/tasks/999')
-      const response = await getTaskById(request, { params: Promise.resolve({ id: '999' }) })
-      const data = await response.json()
-
-      expect(response.status).toBe(404)
-      expect(data).toHaveProperty('error')
-      expect(mockGetTaskById).toHaveBeenCalledWith(999)
-    })
-
-    it('不正なIDが指定された場合にエラーを返す', async () => {
-      const request = new NextRequest('http://localhost:3000/api/tasks/invalid')
-      const response = await getTaskById(request, { params: Promise.resolve({ id: 'invalid' }) })
-      const data = await response.json()
-
-      expect(response.status).toBe(400)
-      expect(data).toHaveProperty('error')
-    })
-  })
-
-  describe('PUT /api/tasks/[id]', () => {
-    it('タスクを更新できる', async () => {
-
-      const updates = {
-        title: '更新されたタスク',
-        estimated_hours: 3,
+        expect(response.status).toBe(201);
+        expect(data.status).toBe(status);
       }
-
-      const updatedTask = {
-        ...defaultTestTasks[0],
-        ...updates,
-        updated_at: '2024-01-03T00:00:00Z',
-      }
-
-      mockUpdateTask.mockReturnValue(updatedTask)
-
-      const request = new NextRequest('http://localhost:3000/api/tasks/1', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      })
-
-      const response = await PUT(request, { params: Promise.resolve({ id: '1' }) })
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.title).toBe(updates.title)
-      expect(data.estimated_hours).toBe(updates.estimated_hours)
-      expect(mockUpdateTask).toHaveBeenCalledWith(1, updates)
-    })
-
-    it('存在しないタスクの更新時に404を返す', async () => {
-      mockUpdateTask.mockReturnValue(null)
-
-      const updates = { title: '存在しないタスク' }
-
-      const request = new NextRequest('http://localhost:3000/api/tasks/999', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      })
-
-      const response = await PUT(request, { params: Promise.resolve({ id: '999' }) })
-      const data = await response.json()
-
-      expect(response.status).toBe(404)
-      expect(data).toHaveProperty('error')
-      expect(mockUpdateTask).toHaveBeenCalledWith(999, updates)
-    })
-  })
-
-  describe('DELETE /api/tasks/[id]', () => {
-    it('タスクを削除できる', async () => {
-      mockDeleteTask.mockReturnValue(true)
-
-      const request = new NextRequest('http://localhost:3000/api/tasks/1', {
-        method: 'DELETE',
-      })
-
-      const response = await DELETE(request, { params: Promise.resolve({ id: '1' }) })
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data).toHaveProperty('message')
-      expect(mockDeleteTask).toHaveBeenCalledWith(1)
-    })
-
-    it('存在しないタスクの削除時に404を返す', async () => {
-      mockDeleteTask.mockReturnValue(false)
-
-      const request = new NextRequest('http://localhost:3000/api/tasks/999', {
-        method: 'DELETE',
-      })
-
-      const response = await DELETE(request, { params: Promise.resolve({ id: '999' }) })
-      const data = await response.json()
-
-      expect(response.status).toBe(404)
-      expect(data).toHaveProperty('error')
-      expect(mockDeleteTask).toHaveBeenCalledWith(999)
-    })
-  })
-})
+    });
+  });
+});

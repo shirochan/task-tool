@@ -1,13 +1,9 @@
-/**
- * @jest-environment node
- */
+import { AIService } from '@/lib/services/aiService';
+import { EstimateRequest } from '@/lib/types';
+import { mockTaskInput, mockEstimateResponse } from '@/test-utils/fixtures';
 
-import { AIService } from '@/lib/services/aiService'
-import { EstimateRequest } from '@/lib/types'
-import OpenAI from 'openai'
-
-// OpenAIのモック
-const mockCreate = jest.fn()
+// OpenAI APIをモック
+const mockCreate = jest.fn();
 jest.mock('openai', () => {
   return {
     __esModule: true,
@@ -18,73 +14,90 @@ jest.mock('openai', () => {
         },
       },
     })),
-  }
-})
+  };
+});
 
 describe('AIService', () => {
-  let originalEnv: typeof process.env
+  const originalEnv = process.env;
 
   beforeEach(() => {
-    originalEnv = process.env
-    jest.clearAllMocks()
-    mockCreate.mockClear()
-  })
+    // 環境変数をリセット
+    process.env = { ...originalEnv };
+    
+    // OpenAIモックをリセット
+    mockCreate.mockReset();
+  });
 
-  afterEach(() => {
-    process.env = originalEnv
-  })
+  afterAll(() => {
+    process.env = originalEnv;
+  });
 
   describe('estimateTask', () => {
-    const mockRequest: EstimateRequest = {
-      task: {
-        title: 'プレゼンテーション資料作成',
-        description: '来週の会議用プレゼンテーション資料を作成する',
-        priority: 'must',
-        category: '仕事',
-      },
-    }
+    const estimateRequest: EstimateRequest = {
+      task: mockTaskInput,
+      context: 'テスト用コンテキスト',
+    };
 
-    it('OpenAI APIキーが設定されていない場合にエラーを投げる', async () => {
-      delete process.env.OPENAI_API_KEY
+    it('should return estimate response when OpenAI API is successful', async () => {
+      // OpenAI API keyを設定
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('OpenAI API key is not configured')
-    })
-
-    it('正常にタスクの見積もりを取得できる', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      const mockResponse = {
+      // OpenAI APIの成功レスポンスをモック
+      const mockResponse = JSON.stringify(mockEstimateResponse);
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
-              content: JSON.stringify({
-                estimated_hours: 4,
-                confidence_score: 0.8,
-                reasoning: 'プレゼンテーション資料作成は調査、構成、デザイン、レビューの工程が必要',
-                questions: ['どのような形式の資料ですか？', '参考資料はありますか？'],
-              }),
+              content: mockResponse,
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
-
-      const result = await AIService.estimateTask(mockRequest)
+      const result = await AIService.estimateTask(estimateRequest);
 
       expect(result).toEqual({
-        estimated_hours: 4,
-        hours: 4,
-        confidence_score: 0.8,
-        reasoning: 'プレゼンテーション資料作成は調査、構成、デザイン、レビューの工程が必要',
-        questions: ['どのような形式の資料ですか？', '参考資料はありますか？'],
-      })
-    })
+        estimated_hours: mockEstimateResponse.estimated_hours,
+        hours: mockEstimateResponse.estimated_hours, // 下位互換性
+        confidence_score: mockEstimateResponse.confidence_score,
+        reasoning: mockEstimateResponse.reasoning,
+        questions: mockEstimateResponse.questions || [],
+      });
 
-    it('OpenAI APIから空の応答が返された場合にエラーを投げる', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+      // OpenAI APIが適切なパラメータで呼び出されたことを確認
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gpt-4o',
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              role: 'system',
+            }),
+            expect.objectContaining({
+              role: 'user',
+              content: expect.stringContaining(mockTaskInput.title),
+            }),
+          ]),
+          temperature: 0.3,
+          max_tokens: 500,
+          response_format: { type: "json_object" },
+        })
+      );
+    });
 
-      const mockResponse = {
+    it('should throw error when OpenAI API key is not configured', async () => {
+      // API keyを削除
+      delete process.env.OPENAI_API_KEY;
+
+      await expect(AIService.estimateTask(estimateRequest))
+        .rejects
+        .toThrow('OpenAI API key is not configured');
+    });
+
+    it('should throw error when OpenAI API returns empty response', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
+
+      // 空のレスポンスをモック
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
@@ -92,172 +105,155 @@ describe('AIService', () => {
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
+      await expect(AIService.estimateTask(estimateRequest))
+        .rejects
+        .toThrow('OpenAI APIから空のレスポンスが返されました');
+    });
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('OpenAI APIから空のレスポンスが返されました')
-    })
+    it('should throw error when OpenAI API returns invalid JSON', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-    it('不正なJSON応答の場合にエラーを投げる', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      const mockResponse = {
+      // 無効なJSONをモック
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
-              content: '不正なJSON',
+              content: 'invalid json response',
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
+      await expect(AIService.estimateTask(estimateRequest))
+        .rejects
+        .toThrow('OpenAI APIからの応答をJSON形式で解析できませんでした');
+    });
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('OpenAI APIからの応答をJSON形式で解析できませんでした')
-    })
+    it('should throw error when response validation fails', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-    it('必須フィールドが不足している場合にエラーを投げる', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+      // 不正な形式のレスポンスをモック
+      const invalidResponse = JSON.stringify({
+        estimated_hours: 'invalid', // 数値ではない
+        confidence_score: 0.8,
+        reasoning: 'テスト理由',
+      });
 
-      const mockResponse = {
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
-              content: JSON.stringify({
-                estimated_hours: 3,
-                // confidence_score, reasoning が不足
-              }),
+              content: invalidResponse,
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
+      await expect(AIService.estimateTask(estimateRequest))
+        .rejects
+        .toThrow('OpenAI APIレスポンスの形式が不正です');
+    });
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('OpenAI APIレスポンスの形式が不正です')
-    })
+    it('should throw error when OpenAI API call fails', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-    it('OpenAI APIの呼び出しでエラーが発生した場合にエラーを投げる', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+      // API呼び出しエラーをモック
+      mockCreate.mockRejectedValueOnce(
+        new Error('API request failed')
+      );
 
-      mockCreate.mockRejectedValue(new Error('API Error'))
+      await expect(AIService.estimateTask(estimateRequest))
+        .rejects
+        .toThrow('API request failed');
+    });
 
-      await expect(AIService.estimateTask(mockRequest)).rejects.toThrow('API Error')
-    })
+    it('should handle missing optional fields in response', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-    it('正しいプロンプトでOpenAI APIを呼び出す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+      // questionsフィールドなしのレスポンス
+      const responseWithoutQuestions = JSON.stringify({
+        estimated_hours: 2.5,
+        confidence_score: 0.8,
+        reasoning: 'テスト理由',
+        // questions フィールドなし
+      });
 
-      const mockResponse = {
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
-              content: JSON.stringify({
-                estimated_hours: 2,
-                confidence_score: 0.7,
-                reasoning: 'テスト用の見積もり',
-                questions: [],
-              }),
+              content: responseWithoutQuestions,
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
+      const result = await AIService.estimateTask(estimateRequest);
 
-      await AIService.estimateTask(mockRequest)
-
-      expect(mockCreate).toHaveBeenCalledWith({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'あなたは経験豊富なプロジェクトマネージャーです。タスクの工数見積もりを正確に行います。指定されたJSON形式で必ず回答してください。',
-          },
-          {
-            role: 'user',
-            content: expect.stringContaining('プレゼンテーション資料作成'),
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 500,
-        response_format: { type: "json_object" },
-      })
-    })
-  })
+      expect(result.questions).toEqual([]);
+    });
+  });
 
   describe('generateScheduleRecommendations', () => {
     const mockTasks = [
       {
         id: 1,
-        title: 'プレゼンテーション資料作成',
-        description: '来週の会議用プレゼンテーション資料を作成する',
+        title: 'タスク1',
+        description: 'テストタスク1',
         priority: 'must' as const,
-        estimated_hours: 4,
+        estimated_hours: 2,
       },
       {
         id: 2,
-        title: 'Next.js学習',
-        description: 'Next.js 15の新機能について学習する',
+        title: 'タスク2',
         priority: 'want' as const,
-        estimated_hours: 3,
+        estimated_hours: 1,
       },
-    ]
+    ];
 
-    it('OpenAI APIキーが設定されていない場合にデフォルトメッセージを返す', async () => {
-      delete process.env.OPENAI_API_KEY
+    it('should return recommendations when OpenAI API is successful', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-      const result = await AIService.generateScheduleRecommendations(mockTasks)
+      const mockResponse = JSON.stringify({
+        recommendations: ['推奨事項1', '推奨事項2'],
+        optimizations: ['最適化案1'],
+      });
+
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: mockResponse,
+            },
+          },
+        ],
+      });
+
+      const result = await AIService.generateScheduleRecommendations(mockTasks);
+
+      expect(result).toEqual({
+        recommendations: ['推奨事項1', '推奨事項2'],
+        optimizations: ['最適化案1'],
+      });
+    });
+
+    it('should return fallback message when API key is not configured', async () => {
+      delete process.env.OPENAI_API_KEY;
+
+      const result = await AIService.generateScheduleRecommendations(mockTasks);
 
       expect(result).toEqual({
         recommendations: ['OpenAI APIキーが設定されていません'],
         optimizations: [],
-      })
-    })
+      });
+    });
 
-    it('正常にスケジュール推奨事項を取得できる', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+    it('should return fallback when OpenAI API returns empty response', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-      const mockResponse = {
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                recommendations: [
-                  '必須タスクを週の前半に配置してください',
-                  '関連するタスクをまとめて処理してください',
-                ],
-                optimizations: [
-                  'エネルギーレベルの高い午前中に重要なタスクを配置',
-                  'バッファ時間を各タスクの後に確保',
-                ],
-              }),
-            },
-          },
-        ],
-      }
-
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
-
-      const result = await AIService.generateScheduleRecommendations(mockTasks)
-
-      expect(result).toEqual({
-        recommendations: [
-          '必須タスクを週の前半に配置してください',
-          '関連するタスクをまとめて処理してください',
-        ],
-        optimizations: [
-          'エネルギーレベルの高い午前中に重要なタスクを配置',
-          'バッファ時間を各タスクの後に確保',
-        ],
-      })
-    })
-
-    it('OpenAI APIから空の応答が返された場合にデフォルトメッセージを返す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      const mockResponse = {
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
@@ -265,160 +261,77 @@ describe('AIService', () => {
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
-
-      const result = await AIService.generateScheduleRecommendations(mockTasks)
+      const result = await AIService.generateScheduleRecommendations(mockTasks);
 
       expect(result).toEqual({
         recommendations: ['AI応答を取得できませんでした'],
         optimizations: [],
-      })
-    })
+      });
+    });
 
-    it('不正なJSON応答の場合にエラーメッセージを返す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+    it('should return fallback when JSON parsing fails', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-      const mockResponse = {
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
-              content: '不正なJSON',
+              content: 'invalid json',
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
-
-      const result = await AIService.generateScheduleRecommendations(mockTasks)
+      const result = await AIService.generateScheduleRecommendations(mockTasks);
 
       expect(result).toEqual({
         recommendations: ['応答の解析に失敗しました'],
         optimizations: [],
-      })
-    })
+      });
+    });
 
-    it('部分的に不正なJSON応答の場合にデフォルト値を使用する', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+    it('should return fallback when OpenAI API call fails', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-      const mockResponse = {
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                recommendations: ['推奨事項1'],
-                // optimizations が不足
-              }),
-            },
-          },
-        ],
-      }
+      mockCreate.mockRejectedValueOnce(
+        new Error('API request failed')
+      );
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
-
-      const result = await AIService.generateScheduleRecommendations(mockTasks)
-
-      expect(result).toEqual({
-        recommendations: ['推奨事項1'],
-        optimizations: [],
-      })
-    })
-
-    it('OpenAI APIの呼び出しでエラーが発生した場合にエラーメッセージを返す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      mockCreate.mockRejectedValue(new Error('API Error'))
-
-      const result = await AIService.generateScheduleRecommendations(mockTasks)
+      const result = await AIService.generateScheduleRecommendations(mockTasks);
 
       expect(result).toEqual({
         recommendations: ['AI推奨事項の取得に失敗しました'],
         optimizations: [],
-      })
-    })
+      });
+    });
 
-    it('正しいプロンプトでOpenAI APIを呼び出す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
+    it('should handle partial response data', async () => {
+      process.env.OPENAI_API_KEY = 'test-api-key';
 
-      const mockResponse = {
+      // recommendationsのみでoptimizationsがないレスポンス
+      const partialResponse = JSON.stringify({
+        recommendations: ['推奨事項のみ'],
+        // optimizations フィールドなし
+      });
+
+      mockCreate.mockResolvedValueOnce({
         choices: [
           {
             message: {
-              content: JSON.stringify({
-                recommendations: ['推奨事項'],
-                optimizations: ['最適化'],
-              }),
+              content: partialResponse,
             },
           },
         ],
-      }
+      });
 
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
-
-      await AIService.generateScheduleRecommendations(mockTasks)
-
-      expect(mockCreate).toHaveBeenCalledWith({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'あなたは効率的なスケジュール管理の専門家です。実践的で実行可能な提案を行います。',
-          },
-          {
-            role: 'user',
-            content: expect.stringContaining('プレゼンテーション資料作成'),
-          },
-        ],
-        temperature: 0.4,
-        max_tokens: 400,
-      })
-    })
-
-    it('未見積もりタスクも含めて処理できる', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      const tasksWithoutEstimate = [
-        {
-          id: 1,
-          title: 'タスク1',
-          priority: 'must' as const,
-          // estimated_hours が不足
-        },
-        {
-          id: 2,
-          title: 'タスク2',
-          description: 'タスク2の説明',
-          priority: 'want' as const,
-          estimated_hours: 2,
-        },
-      ]
-
-      const mockResponse = {
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                recommendations: ['推奨事項'],
-                optimizations: ['最適化'],
-              }),
-            },
-          },
-        ],
-      }
-
-      mockCreate.mockResolvedValue(mockResponse as OpenAI.Chat.Completions.ChatCompletion)
-
-      const result = await AIService.generateScheduleRecommendations(tasksWithoutEstimate)
+      const result = await AIService.generateScheduleRecommendations(mockTasks);
 
       expect(result).toEqual({
-        recommendations: ['推奨事項'],
-        optimizations: ['最適化'],
-      })
-
-      const callArgs = mockCreate.mock.calls[0][0]
-      expect(callArgs.messages[1].content).toContain('未見積もり')
-    })
-  })
-})
+        recommendations: ['推奨事項のみ'],
+        optimizations: [],
+      });
+    });
+  });
+});

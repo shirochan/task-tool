@@ -1,63 +1,119 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom';
 
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  
-  disconnect() {}
-  
-  observe() {}
-  
-  unobserve() {}
-}
+// テスト環境でのグローバル設定
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
 
-// Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  constructor() {}
-  
-  disconnect() {}
-  
-  observe() {}
-  
-  unobserve() {}
-}
+// Fetch APIの簡単なモック（MSWは後で設定）
+global.fetch = jest.fn();
 
-// Mock window.matchMedia (only in jsdom environment)
-if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: jest.fn().mockImplementation(query => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    })),
-  })
-}
+// Next.js Web API polyfills
+global.Request = class Request {
+  constructor(input, init = {}) {
+    this.url = input;
+    this.method = init.method || 'GET';
+    this.headers = new Map(Object.entries(init.headers || {}));
+    this.body = init.body;
+  }
+  
+  async json() {
+    return JSON.parse(this.body);
+  }
+};
 
-// Mock next/router
-jest.mock('next/router', () => require('next-router-mock'))
+global.Response = class Response {
+  constructor(body, init = {}) {
+    this.body = body;
+    this.status = init.status || 200;
+    this.statusText = init.statusText || 'OK';
+    this.headers = new Map(Object.entries(init.headers || {}));
+  }
+  
+  async json() {
+    return typeof this.body === 'string' ? JSON.parse(this.body) : this.body;
+  }
+};
 
-// Mock next/navigation
-jest.mock('next/navigation', () => ({
-  useRouter() {
-    return {
-      push: jest.fn(),
-      replace: jest.fn(),
-      prefetch: jest.fn(),
+global.Headers = class Headers extends Map {
+  constructor(init) {
+    super();
+    if (init) {
+      Object.entries(init).forEach(([key, value]) => {
+        this.set(key, value);
+      });
+    }
+  }
+};
+
+// NextResponse モック
+jest.mock('next/server', () => ({
+  NextRequest: class NextRequest {
+    constructor(url, init = {}) {
+      this.url = url;
+      this.method = init.method || 'GET';
+      this.headers = new Map(Object.entries(init.headers || {}));
+      this._body = init.body;
+    }
+    
+    async json() {
+      return JSON.parse(this._body);
     }
   },
-  useSearchParams() {
-    return new URLSearchParams()
+  NextResponse: {
+    json: (data, init = {}) => {
+      return {
+        status: init.status || 200,
+        json: async () => data,
+      };
+    },
   },
-  usePathname() {
-    return '/'
-  },
-}))
+}));
 
-// Mock environment variables
-process.env.NODE_ENV = 'test'
+// Next.js Router のモック
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    refresh: jest.fn(),
+  }),
+  useSearchParams: () => ({
+    get: jest.fn(),
+  }),
+  usePathname: () => '/',
+}));
+
+// ResizeObserver のモック
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// IntersectionObserver のモック
+global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// テスト環境変数設定
+process.env.NODE_ENV = 'test';
+process.env.TEST_DATABASE_PATH = ':memory:';
+
+// console.warn と console.error を抑制（必要に応じて）
+const originalWarn = console.warn;
+const originalError = console.error;
+
+beforeAll(() => {
+  console.warn = jest.fn();
+  console.error = jest.fn();
+});
+
+afterAll(() => {
+  console.warn = originalWarn;
+  console.error = originalError;
+});

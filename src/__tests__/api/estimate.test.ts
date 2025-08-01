@@ -1,263 +1,344 @@
-/**
- * @jest-environment node
- */
+import { POST } from '@/app/api/estimate/route';
+import { AIService } from '@/lib/services/aiService';
+import { mockTaskInput, mockEstimateResponse } from '@/test-utils/fixtures';
+import { NextRequest } from 'next/server';
 
-import { POST } from '@/app/api/estimate/route'
-import { NextRequest } from 'next/server'
-
-// AIServiceのモック
+// AIServiceをモック
 jest.mock('@/lib/services/aiService', () => ({
   AIService: {
     estimateTask: jest.fn(),
   },
-}))
+}));
 
 describe('/api/estimate', () => {
+  const mockEstimateTask = AIService.estimateTask as jest.MockedFunction<typeof AIService.estimateTask>;
+
+  beforeAll(() => {
+    process.env.NODE_ENV = 'test';
+  });
+
   beforeEach(() => {
-    jest.clearAllMocks()
-    // 環境変数をクリア
-    delete process.env.OPENAI_API_KEY
-  })
+    // AIServiceのモックをクリア
+    jest.clearAllMocks();
+  });
 
   describe('POST /api/estimate', () => {
-    it('OpenAI APIが利用可能な場合にAI見積もりを返す', async () => {
-      // OpenAI APIキーを設定
-      process.env.OPENAI_API_KEY = 'test-api-key'
+    it('should return estimate successfully with valid task', async () => {
+      mockEstimateTask.mockResolvedValue(mockEstimateResponse);
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: mockTaskInput }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(mockEstimateResponse);
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: mockTaskInput });
+    });
+
+    it('should return estimate with context when provided', async () => {
+      const contextData = 'プロジェクトの追加コンテキスト';
+      mockEstimateTask.mockResolvedValue(mockEstimateResponse);
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          task: mockTaskInput,
+          context: contextData
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(mockEstimateResponse);
+      expect(mockEstimateTask).toHaveBeenCalledWith({ 
+        task: mockTaskInput,
+        context: contextData
+      });
+    });
+
+    it('should validate required task field', async () => {
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: 'タスク情報が必要です' });
+      expect(mockEstimateTask).not.toHaveBeenCalled();
+    });
+
+    it('should validate task.title field', async () => {
+      const invalidTask = { ...mockTaskInput, title: '' };
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: invalidTask }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: 'タスクのタイトルが必要です' });
+      expect(mockEstimateTask).not.toHaveBeenCalled();
+    });
+
+    it('should validate task.title is not undefined', async () => {
+      const invalidTask = { ...mockTaskInput };
+      delete (invalidTask as Record<string, unknown>).title;
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: invalidTask }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data).toEqual({ error: 'タスクのタイトルが必要です' });
+      expect(mockEstimateTask).not.toHaveBeenCalled();
+    });
+
+    it('should handle OpenAI API key not configured error', async () => {
+      mockEstimateTask.mockRejectedValue(
+        new Error('OpenAI API key is not configured')
+      );
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: mockTaskInput }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data).toEqual({ 
+        error: 'OpenAI APIキーが設定されていません。設定を確認してください。' 
+      });
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: mockTaskInput });
+    });
+
+    it('should handle OpenAI API connection error', async () => {
+      mockEstimateTask.mockRejectedValue(
+        new Error('OpenAI API connection failed')
+      );
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: mockTaskInput }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data).toEqual({ 
+        error: 'AI見積もりサービスに接続できません。しばらく時間をおいて再試行してください。' 
+      });
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: mockTaskInput });
+    });
+
+    it('should handle generic errors with error message', async () => {
+      const errorMessage = 'タスクの複雑度計算でエラーが発生しました';
+      mockEstimateTask.mockRejectedValue(new Error(errorMessage));
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: mockTaskInput }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ 
+        error: `見積もりの生成に失敗しました: ${errorMessage}` 
+      });
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: mockTaskInput });
+    });
+
+    it('should handle non-Error exceptions', async () => {
+      mockEstimateTask.mockRejectedValue('Unexpected string error');
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: mockTaskInput }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ error: '見積もりの生成に失敗しました' });
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: mockTaskInput });
+    });
+
+    it('should handle invalid JSON request body', async () => {
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: 'invalid json',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ error: '見積もりの生成に失敗しました: Unexpected token \'i\', "invalid json" is not valid JSON' });
+      expect(mockEstimateTask).not.toHaveBeenCalled();
+    });
+
+    it('should handle complex task objects correctly', async () => {
+      const complexTask = {
+        title: '複雑なタスク',
+        description: '非常に詳細な説明を含むタスク',
+        priority: 'must' as const,
+        category: 'システム開発',
+        estimated_hours: 8.5,
+        status: 'pending' as const,
+      };
+      const complexEstimate = {
+        ...mockEstimateResponse,
+        estimated_hours: 8.5,
+        confidence_score: 0.6,
+        reasoning: '複雑なタスクのため、より多くの時間が必要と推定されます。',
+      };
       
-      const { AIService } = await import('@/lib/services/aiService')
-      const mockEstimateTask = AIService.estimateTask as jest.Mock
+      mockEstimateTask.mockResolvedValue(complexEstimate);
 
-      const mockResponse = {
-        estimated_hours: 3,
-        confidence_score: 0.85,
-        reasoning: 'プレゼンテーション資料作成は調査と資料作成が必要',
-        questions: ['どのような形式の資料ですか？', '参考資料はありますか？'],
-      }
-
-      mockEstimateTask.mockResolvedValue(mockResponse)
-
-      const taskInput = {
-        task: {
-          title: 'プレゼンテーション資料作成',
-          description: '来週の会議用の資料を作成する',
-          priority: 'must' as const,
-          category: '仕事',
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: complexTask }),
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }
+      });
 
-      const request = new NextRequest('http://localhost:3000/api/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskInput),
-      })
+      const response = await POST(request);
+      const data = await response.json();
 
-      const response = await POST(request)
-      const data = await response.json()
+      expect(response.status).toBe(200);
+      expect(data).toEqual(complexEstimate);
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: complexTask });
+    });
 
-      expect(response.status).toBe(200)
-      expect(data.estimated_hours).toBe(3)
-      expect(data.confidence_score).toBe(0.85)
-      expect(data.reasoning).toContain('プレゼンテーション')
-      expect(Array.isArray(data.questions)).toBe(true)
-      expect(mockEstimateTask).toHaveBeenCalledWith(taskInput)
-    })
-
-    it('OpenAI APIが利用不可の場合にエラーを返す', async () => {
-      // OpenAI APIキーを設定しない
-      delete process.env.OPENAI_API_KEY
-
-      const { AIService } = await import('@/lib/services/aiService')
-      const mockEstimateTask = AIService.estimateTask as jest.Mock
-      mockEstimateTask.mockRejectedValue(new Error('OpenAI API key is not configured'))
-
-      const taskInput = {
-        task: {
-          title: 'プレゼンテーション資料作成',
-          description: '来週の会議用の資料を作成する',
-          priority: 'must' as const,
-          category: '仕事',
-        },
-      }
-
-      const request = new NextRequest('http://localhost:3000/api/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskInput),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(503)
-      expect(data).toHaveProperty('error')
-      expect(data.error).toContain('OpenAI APIキーが設定されていません')
-    })
-
-    it('OpenAI APIエラーの場合にエラーを返す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      const { AIService } = await import('@/lib/services/aiService')
-      const mockEstimateTask = AIService.estimateTask as jest.Mock
-      mockEstimateTask.mockRejectedValue(new Error('OpenAI API レスポンスの形式が不正です'))
-
-      const taskInput = {
-        task: {
-          title: 'プレゼンテーション準備',
-          description: 'プレゼンテーション用の資料を作成',
-          priority: 'must' as const,
-        },
-      }
-
-      const request = new NextRequest('http://localhost:3000/api/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskInput),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(503)
-      expect(data).toHaveProperty('error')
-      expect(data.error).toContain('AI見積もりサービスに接続できません')
-    })
-
-    it('一般的なエラーの場合にエラーメッセージを返す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      const { AIService } = await import('@/lib/services/aiService')
-      const mockEstimateTask = AIService.estimateTask as jest.Mock
-      mockEstimateTask.mockRejectedValue(new Error('一般的なエラーメッセージ'))
-
-      const taskInput = {
-        task: {
-          title: '会議参加',
-          description: 'チームミーティングに参加する',
-          priority: 'must' as const,
-        },
-      }
-
-      const request = new NextRequest('http://localhost:3000/api/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskInput),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(data).toHaveProperty('error')
-      expect(data.error).toContain('一般的なエラーメッセージ')
-    })
-
-    it('必須フィールドが不足している場合にエラーを返す', async () => {
-      const invalidInput = {
-        // taskフィールドが不足
-      }
-
-      const request = new NextRequest('http://localhost:3000/api/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(invalidInput),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(400) // 必須フィールド不足なので400エラー
-      expect(data).toHaveProperty('error')
-      expect(data.error).toBe('タスク情報が必要です')
-    })
-
-    it('タスクのタイトルが不足している場合にエラーを返す', async () => {
-      const invalidInput = {
-        task: {
-          description: 'タイトルがありません',
-          priority: 'must' as const,
-        },
-      }
-
-      const request = new NextRequest('http://localhost:3000/api/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(invalidInput),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(400)
-      expect(data).toHaveProperty('error')
-      expect(data.error).toContain('タイトル')
-    })
-
-    it('OpenAI APIが成功した場合に正常なレスポンスを返す', async () => {
-      process.env.OPENAI_API_KEY = 'test-api-key'
-
-      const { AIService } = await import('@/lib/services/aiService')
-      const mockEstimateTask = AIService.estimateTask as jest.Mock
+    it('should handle minimal task objects correctly', async () => {
+      const minimalTask = {
+        title: '最小限のタスク',
+        priority: 'want' as const,
+      };
       
-      const mockResponse = {
-        estimated_hours: 2.5,
-        confidence_score: 0.8,
-        reasoning: 'テストタスクの見積もり',
-        questions: ['詳細を教えてください'],
-      }
+      mockEstimateTask.mockResolvedValue(mockEstimateResponse);
+
+      const request = new NextRequest('http://localhost:3000/api/estimate', {
+        method: 'POST',
+        body: JSON.stringify({ task: minimalTask }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(mockEstimateResponse);
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: minimalTask });
+    });
+
+    it('should handle estimate with questions array', async () => {
+      const estimateWithQuestions = {
+        ...mockEstimateResponse,
+        questions: [
+          'このタスクにはデータベース設計が含まれますか？',
+          'UIのデザインは完了していますか？',
+          'テスト実装も含めますか？'
+        ],
+      };
       
-      mockEstimateTask.mockResolvedValue(mockResponse)
-
-      const taskInput = {
-        task: {
-          title: 'テストタスク',
-          description: '詳細な説明があります',
-          priority: 'must' as const,
-        },
-      }
+      mockEstimateTask.mockResolvedValue(estimateWithQuestions);
 
       const request = new NextRequest('http://localhost:3000/api/estimate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskInput),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.estimated_hours).toBe(2.5)
-      expect(data.confidence_score).toBe(0.8)
-      expect(data.reasoning).toBe('テストタスクの見積もり')
-      expect(data.questions).toEqual(['詳細を教えてください'])
-    })
-
-    it('APIキーが設定されていない場合の適切なエラーハンドリング', async () => {
-      delete process.env.OPENAI_API_KEY
-
-      const { AIService } = await import('@/lib/services/aiService')
-      const mockEstimateTask = AIService.estimateTask as jest.Mock
-      mockEstimateTask.mockRejectedValue(new Error('OpenAI API key is not configured'))
-
-      const taskInput = {
-        task: {
-          title: 'テストタスク',
-          priority: 'must' as const,
-          // descriptionなし
+        body: JSON.stringify({ task: mockTaskInput }),
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(estimateWithQuestions);
+      expect(data.questions).toHaveLength(3);
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: mockTaskInput });
+    });
+
+    it('should handle estimate without questions', async () => {
+      const estimateWithoutQuestions = {
+        estimated_hours: 1.5,
+        confidence_score: 0.9,
+        reasoning: 'シンプルなタスクで確実に見積もりできます。',
+      };
+      
+      mockEstimateTask.mockResolvedValue(estimateWithoutQuestions);
 
       const request = new NextRequest('http://localhost:3000/api/estimate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskInput),
-      })
+        body: JSON.stringify({ task: mockTaskInput }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      const response = await POST(request)
-      const data = await response.json()
+      const response = await POST(request);
+      const data = await response.json();
 
-      expect(response.status).toBe(503)
-      expect(data).toHaveProperty('error')
-      expect(data.error).toContain('OpenAI APIキーが設定されていません')
-    })
-  })
-})
+      expect(response.status).toBe(200);
+      expect(data).toEqual(estimateWithoutQuestions);
+      expect(data.questions).toBeUndefined();
+      expect(mockEstimateTask).toHaveBeenCalledWith({ task: mockTaskInput });
+    });
+  });
+});
