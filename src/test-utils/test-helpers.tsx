@@ -95,19 +95,6 @@ export const expectAsyncError = async (asyncFn: () => Promise<unknown>, expected
   }
 };
 
-// タスクフォーム送信用のヘルパー
-// TODO: この関数は各テストで具体的なコンポーネントに合わせて実装してください
-// 現在はスタブとして定義されており、実際のテストでは使用前に適切な実装が必要です
-export const submitTaskForm = async (formData: {
-  title: string;
-  description?: string;
-  priority: 'must' | 'want';
-  category?: string;
-}) => {
-  // この関数は実際のテストで各コンポーネントに合わせて実装してください
-  return formData;
-};
-
 // デバッグ用：レンダリングされたHTMLを出力
 export const debugRender = (element: React.ReactElement) => {
   const { container } = renderWithProviders(element);
