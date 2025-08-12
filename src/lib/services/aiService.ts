@@ -103,13 +103,12 @@ export class AIService {
       }
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5-mini',
         messages,
-        temperature: 0.3,
-        max_tokens: 800,
-        response_format: { type: "json_object" },
+        max_completion_tokens: 8000, // GPT-5の推論トークン消費に対応
+        response_format: { type: "json_object" }, // GPT-5でも動作することを確認済み
       });
-
+      
       const response = completion.choices[0].message.content;
       if (!response) {
         throw new Error('OpenAI APIから空のレスポンスが返されました');
@@ -159,7 +158,7 @@ export class AIService {
     try {
       const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
@@ -170,9 +169,8 @@ export class AIService {
             content: prompt
           }
         ],
-        temperature: 0.3,
-        max_tokens: 500,
-        response_format: { type: "json_object" },
+        max_completion_tokens: 6000, // GPT-5の推論トークン消費に対応
+        response_format: { type: "json_object" }, // GPT-5でも動作することを確認済み
       });
 
       const response = completion.choices[0].message.content;
@@ -234,7 +232,7 @@ export class AIService {
     try {
       const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
@@ -245,8 +243,7 @@ export class AIService {
             content: prompt
           }
         ],
-        temperature: 0.4,
-        max_tokens: 400,
+        max_completion_tokens: 2000, // GPT-5の推論トークン消費に対応
       });
 
       const response = completion.choices[0].message.content;
