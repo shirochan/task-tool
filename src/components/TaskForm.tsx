@@ -123,7 +123,9 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
       timestamp: new Date(),
     };
 
-    setChatMessages(prev => [...prev, userMessage]);
+    // 新しいメッセージを含む配列を事前に作成
+    const newChatMessages = [...chatMessages, userMessage];
+    setChatMessages(newChatMessages);
     setCurrentMessage('');
     setIsEstimating(true);
 
@@ -137,6 +139,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
         estimated_hours: formData.estimated_hours,
       };
       
+      
       const response = await fetch('/api/estimate', {
         method: 'POST',
         headers: {
@@ -144,23 +147,29 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
         },
         body: JSON.stringify({
           task: taskData,
-          chatHistory: chatMessages, // チャット履歴を含める
+          chatHistory: newChatMessages, // 新しいメッセージを含む配列を送信
         }),
       });
 
       if (response.ok) {
         const estimate = await response.json();
+        
         const estimateData = {
           hours: estimate.estimated_hours || estimate.hours,
           reasoning: estimate.reasoning,
           questions: estimate.questions || [],
         };
         
+        
+        // 新しいAI回答の内容を直接使用してチャットメッセージを作成
+        const currentQuestions = estimate.questions || [];
+        
         const aiMessage = {
           type: 'ai' as const,
-          content: `見積もり時間: ${estimateData.hours}時間\n\n理由: ${estimateData.reasoning}\n\n${estimateData.questions.length > 0 ? `質問: ${estimateData.questions.join(', ')}` : ''}`,
+          content: `見積もり時間: ${estimateData.hours}時間\n\n理由: ${estimateData.reasoning}\n\n${currentQuestions.length > 0 ? `質問: ${currentQuestions.join(', ')}` : ''}`,
           timestamp: new Date(),
         };
+        
         setChatMessages(prev => [...prev, aiMessage]);
         setEstimateDetails(estimateData);
       } else {
