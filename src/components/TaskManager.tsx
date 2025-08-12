@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Edit, Trash2, Clock, Calendar, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,28 +67,26 @@ export function TaskManager() {
     }
   ], [showInfoPanel]);
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      const response = await fetch('/api/tasks');
-      if (response.ok) {
-        const data = await response.json();
-        setTasks(data);
-      } else {
-        error('タスクの取得に失敗しました');
-      }
-    } catch (err) {
-      console.error('タスクの取得に失敗しました:', err);
-      error('タスクの取得に失敗しました');
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch('/api/tasks');
+        if (response.ok) {
+          const data = await response.json();
+          setTasks(data);
+        } else {
+          error('タスクの取得に失敗しました');
+        }
+      } catch (err) {
+        console.error('タスクの取得に失敗しました:', err);
+        error('タスクの取得に失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [error]);
 
   const handleTaskCreated = (task: Task) => {
     setTasks([...tasks, task]);
