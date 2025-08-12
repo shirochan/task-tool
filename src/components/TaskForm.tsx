@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Bot, User, ArrowRight } from "lucide-react";
 import { useToast } from '@/hooks/useToast';
-import { Task, TASK_STATUS_LABELS, TaskStatus } from '@/lib/types';
+import { Task, TASK_STATUS_LABELS, TaskStatus, ChatMessage } from '@/lib/types';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'タイトルは必須です'),
@@ -43,14 +43,11 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     reasoning: string;
     questions: string[];
   } | null>(null);
-  const [chatMessages, setChatMessages] = useState<{
-    type: 'user' | 'ai';
-    content: string;
-    timestamp: Date;
-  }[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [activeTab, setActiveTab] = useState('form');
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -74,6 +71,43 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
     },
   });
 
+  // チャットメッセージが更新された時に自動スクロール
+  useEffect(() => {
+    if (scrollAreaRef.current && chatMessages.length > 0) {
+      const scrollToBottom = () => {
+        const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollContainer) {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      };
+      
+      // 少し遅延を入れてスクロールを実行（DOM更新後に確実に実行するため）
+      const timeoutId = setTimeout(scrollToBottom, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [chatMessages]);
+
+  // AI返答中（isEstimating）の状態変化でもスクロール
+  useEffect(() => {
+    if (isEstimating && scrollAreaRef.current) {
+      const scrollToBottom = () => {
+        const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollContainer) {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      };
+      
+      const timeoutId = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isEstimating]);
 
   const handleChatSubmit = async () => {
     if (!currentMessage.trim()) return;
@@ -107,6 +141,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
         },
         body: JSON.stringify({
           task: taskData,
+          chatHistory: chatMessages, // チャット履歴を含める
         }),
       });
 
@@ -222,7 +257,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
                 結果はフォームに自動反映できます。
               </p>
               
-              <ScrollArea className="h-96 w-full border rounded-lg bg-white p-4">
+              <ScrollArea ref={scrollAreaRef} className="h-96 w-full border rounded-lg bg-white p-4">
                 <div 
                   className="space-y-4" 
                   role="log" 

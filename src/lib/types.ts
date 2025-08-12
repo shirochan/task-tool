@@ -70,6 +70,14 @@ export interface WeeklySchedule {
 export interface EstimateRequest {
   task: TaskInput;
   context?: string;
+  chatHistory?: ChatMessage[];
+}
+
+// チャットメッセージの型
+export interface ChatMessage {
+  type: 'user' | 'ai';
+  content: string;
+  timestamp: Date;
 }
 
 export interface EstimateResponse {

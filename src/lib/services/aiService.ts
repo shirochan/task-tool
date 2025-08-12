@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { EstimateRequest, EstimateResponse } from '@/lib/types';
+import { EstimateRequest, EstimateResponse, type ChatMessage } from '@/lib/types';
 import { createTaskEstimationPrompt, createScheduleRecommendationPrompt, SYSTEM_PROMPTS } from './ai-prompts';
 
 function getOpenAIClient() {
@@ -60,6 +60,93 @@ function validateEstimateResponse(parsed: unknown): { isValid: boolean; error?: 
 }
 
 export class AIService {
+  // チャット履歴を考慮した会話形式の相談
+  static async consultWithHistory(request: EstimateRequest): Promise<EstimateResponse> {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
+    const { task, chatHistory = [] } = request;
+    
+    try {
+      const openai = getOpenAIClient();
+      
+      // メッセージ配列を構築
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        {
+          role: 'system',
+          content: `あなたはタスク管理の専門家です。ユーザーとの会話履歴を考慮して、タスクの見積もりや詳細について相談に乗ってください。
+
+基本タスク情報:
+- タイトル: ${task.title}
+- 説明: ${task.description || 'なし'}
+- 優先度: ${task.priority === 'must' ? '必須' : '希望'}
+- カテゴリ: ${task.category || 'なし'}
+- 現在の見積もり: ${task.estimated_hours || 'なし'}
+
+会話の最後には、現在の情報に基づいて以下のJSON形式で応答してください：
+{
+  "estimated_hours": 見積もり時間(数値),
+  "confidence_score": 信頼度0-1(数値),
+  "reasoning": "見積もりの根拠や相談内容の要約",
+  "questions": ["追加で確認したい点があれば配列で"]
+}`
+        }
+      ];
+
+      // チャット履歴を追加
+      for (const message of chatHistory as ChatMessage[]) {
+        messages.push({
+          role: message.type === 'user' ? 'user' : 'assistant',
+          content: message.content
+        });
+      }
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages,
+        temperature: 0.3,
+        max_tokens: 800,
+        response_format: { type: "json_object" },
+      });
+
+      const response = completion.choices[0].message.content;
+      if (!response) {
+        throw new Error('OpenAI APIから空のレスポンスが返されました');
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(response);
+      } catch (jsonError) {
+        console.error('JSON解析エラー:', jsonError);
+        console.error('OpenAIレスポンス:', response);
+        throw new Error('OpenAI APIからの応答をJSON形式で解析できませんでした');
+      }
+
+      // レスポンス検証
+      const validation = validateEstimateResponse(parsed);
+      if (!validation.isValid) {
+        console.error('レスポンス検証エラー:', validation.error);
+        console.error('OpenAIレスポンス:', response);
+        throw new Error(`OpenAI APIレスポンスの形式が不正です: ${validation.error}`);
+      }
+
+      const obj = parsed as Record<string, unknown>;
+      return {
+        estimated_hours: obj.estimated_hours as number,
+        hours: obj.estimated_hours as number, // 下位互換性のため
+        confidence_score: obj.confidence_score as number,
+        reasoning: obj.reasoning as string,
+        questions: (obj.questions as string[]) || [],
+      };
+    } catch (error) {
+      console.error('OpenAI API エラー:', error);
+      // エラーをログに記録し、再スローする
+      throw error;
+    }
+  }
+
   static async estimateTask(request: EstimateRequest): Promise<EstimateResponse> {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OpenAI API key is not configured');

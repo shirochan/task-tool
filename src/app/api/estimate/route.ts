@@ -5,7 +5,7 @@ import { AIService } from '@/lib/services/aiService';
 export async function POST(request: NextRequest) {
   try {
     const body: EstimateRequest = await request.json();
-    const { task } = body;
+    const { task, chatHistory } = body;
 
     if (!task) {
       return NextResponse.json(
@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const estimate = await AIService.estimateTask(body);
+    // チャット履歴がある場合は会話形式のメソッドを使用、ない場合は従来のメソッドを使用
+    const estimate = chatHistory && chatHistory.length > 0 
+      ? await AIService.consultWithHistory(body)
+      : await AIService.estimateTask(body);
     return NextResponse.json(estimate);
   } catch (error) {
     console.error('見積もりエラー:', error);
