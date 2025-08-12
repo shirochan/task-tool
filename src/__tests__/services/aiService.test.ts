@@ -67,7 +67,7 @@ describe('AIService', () => {
       // OpenAI APIが適切なパラメータで呼び出されたことを確認
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gpt-4o',
+          model: 'gpt-5-mini',
           messages: expect.arrayContaining([
             expect.objectContaining({
               role: 'system',
@@ -77,8 +77,7 @@ describe('AIService', () => {
               content: expect.stringContaining(mockTaskInput.title),
             }),
           ]),
-          temperature: 0.3,
-          max_tokens: 500,
+          max_completion_tokens: 6000, // GPT5_MINI_TOKENS.ESTIMATION相当
           response_format: { type: "json_object" },
         })
       );
