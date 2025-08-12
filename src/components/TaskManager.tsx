@@ -82,11 +82,11 @@ export function TaskManager() {
     } finally {
       setLoading(false);
     }
-  }, [error]);
+  }, []);
 
   useEffect(() => {
     fetchTasks();
-  }, [fetchTasks]);
+  }, []);
 
   const handleTaskCreated = (task: Task) => {
     setTasks([...tasks, task]);
