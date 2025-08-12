@@ -33,7 +33,7 @@ export function TaskManager() {
   });
   const { success, error } = useToast();
   const errorRef = useRef(error);
-  errorRef.current = error; // 常に最新のerror関数を保持
+  errorRef.current = error; // Always maintain the latest error function
 
   // 最近使用したカテゴリを計算
   const recentCategories = useMemo(() => {
