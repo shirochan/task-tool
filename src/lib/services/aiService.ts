@@ -2,6 +2,13 @@ import OpenAI from 'openai';
 import { EstimateRequest, EstimateResponse, type ChatMessage } from '@/lib/types';
 import { createTaskEstimationPrompt, createScheduleRecommendationPrompt, SYSTEM_PROMPTS } from './ai-prompts';
 
+// GPT-5-miniのトークン制限定数
+const GPT5_MINI_TOKENS = {
+  CONSULTATION: 8000,  // 会話形式の相談用（推論トークン多消費）
+  ESTIMATION: 6000,    // タスク見積もり用
+  SCHEDULE: 2000,      // スケジュール推奨用
+} as const;
+
 function getOpenAIClient() {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OpenAI API key is not configured');
@@ -105,8 +112,8 @@ export class AIService {
       const completion = await openai.chat.completions.create({
         model: 'gpt-5-mini',
         messages,
-        max_completion_tokens: 8000, // GPT-5の推論トークン消費に対応
-        response_format: { type: "json_object" }, // GPT-5でも動作することを確認済み
+        max_completion_tokens: GPT5_MINI_TOKENS.CONSULTATION,
+        response_format: { type: "json_object" },
       });
       
       const response = completion.choices[0].message.content;
@@ -169,8 +176,8 @@ export class AIService {
             content: prompt
           }
         ],
-        max_completion_tokens: 6000, // GPT-5の推論トークン消費に対応
-        response_format: { type: "json_object" }, // GPT-5でも動作することを確認済み
+        max_completion_tokens: GPT5_MINI_TOKENS.ESTIMATION,
+        response_format: { type: "json_object" },
       });
 
       const response = completion.choices[0].message.content;
@@ -243,7 +250,7 @@ export class AIService {
             content: prompt
           }
         ],
-        max_completion_tokens: 2000, // GPT-5の推論トークン消費に対応
+        max_completion_tokens: GPT5_MINI_TOKENS.SCHEDULE,
       });
 
       const response = completion.choices[0].message.content;

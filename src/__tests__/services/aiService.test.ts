@@ -77,7 +77,7 @@ describe('AIService', () => {
               content: expect.stringContaining(mockTaskInput.title),
             }),
           ]),
-          max_completion_tokens: 6000, // GPT-5では推論トークン消費に対応
+          max_completion_tokens: 6000, // GPT5_MINI_TOKENS.ESTIMATION相当
           response_format: { type: "json_object" },
         })
       );

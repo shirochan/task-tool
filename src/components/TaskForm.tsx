@@ -16,6 +16,9 @@ import { MessageSquare, Bot, User, ArrowRight } from "lucide-react";
 import { useToast } from '@/hooks/useToast';
 import { Task, TASK_STATUS_LABELS, TaskStatus, ChatMessage } from '@/lib/types';
 
+// 自動スクロール設定
+const AUTO_SCROLL_DELAY_MS = 100; // DOM更新後のスクロール実行遅延時間
+
 const taskSchema = z.object({
   title: z.string().min(1, 'タイトルは必須です'),
   description: z.string().optional(),
@@ -85,7 +88,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
       };
       
       // 少し遅延を入れてスクロールを実行（DOM更新後に確実に実行するため）
-      const timeoutId = setTimeout(scrollToBottom, 100);
+      const timeoutId = setTimeout(scrollToBottom, AUTO_SCROLL_DELAY_MS);
       
       return () => clearTimeout(timeoutId);
     }
@@ -104,7 +107,7 @@ export function TaskForm({ task, onTaskCreated, onTaskUpdated, onCancel }: TaskF
         }
       };
       
-      const timeoutId = setTimeout(scrollToBottom, 100);
+      const timeoutId = setTimeout(scrollToBottom, AUTO_SCROLL_DELAY_MS);
       return () => clearTimeout(timeoutId);
     }
   }, [isEstimating]);
