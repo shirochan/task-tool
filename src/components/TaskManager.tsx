@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Edit, Trash2, Clock, Calendar, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,8 @@ export function TaskManager() {
     taskId: null
   });
   const { success, error } = useToast();
+  const errorRef = useRef(error);
+  errorRef.current = error; // 常に最新のerror関数を保持
 
   // 最近使用したカテゴリを計算
   const recentCategories = useMemo(() => {
@@ -75,18 +77,18 @@ export function TaskManager() {
           const data = await response.json();
           setTasks(data);
         } else {
-          error('タスクの取得に失敗しました');
+          errorRef.current('タスクの取得に失敗しました');
         }
       } catch (err) {
         console.error('タスクの取得に失敗しました:', err);
-        error('タスクの取得に失敗しました');
+        errorRef.current('タスクの取得に失敗しました');
       } finally {
         setLoading(false);
       }
     };
 
     fetchTasks();
-  }, [error]);
+  }, []);
 
   const handleTaskCreated = (task: Task) => {
     setTasks([...tasks, task]);
