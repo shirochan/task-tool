@@ -108,6 +108,7 @@ export class AIService {
           content: message.content
         });
       }
+      
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-5-mini',
@@ -117,6 +118,7 @@ export class AIService {
       });
       
       const response = completion.choices[0].message.content;
+      
       if (!response) {
         throw new Error('OpenAI APIから空のレスポンスが返されました');
       }
@@ -139,13 +141,16 @@ export class AIService {
       }
 
       const obj = parsed as Record<string, unknown>;
-      return {
+      const result = {
         estimated_hours: obj.estimated_hours as number,
         hours: obj.estimated_hours as number, // 下位互換性のため
         confidence_score: obj.confidence_score as number,
         reasoning: obj.reasoning as string,
         questions: (obj.questions as string[]) || [],
       };
+      
+      
+      return result;
     } catch (error) {
       console.error('OpenAI API エラー:', error);
       // エラーをログに記録し、再スローする
