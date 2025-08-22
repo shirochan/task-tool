@@ -3,10 +3,11 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 15
     commit-message:
       prefix: "deps"
       include: "scope"
@@ -14,10 +15,11 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 8
     commit-message:
       prefix: "docker"
       include: "scope"
