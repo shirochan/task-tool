@@ -4,9 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-      day: "monday"
+      day: "first"
       time: "09:00"
-    open-pull-requests-limit: 10
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
       include: "scope"
@@ -15,9 +16,10 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-      day: "monday"
+      day: "first"
       time: "09:00"
-    open-pull-requests-limit: 5
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "docker"
       include: "scope"
