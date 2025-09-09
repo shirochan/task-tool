@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { readFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
+import { dbLogger } from '@/lib/logger';
 
 // データベースファイルパス（テスト環境では:memory:を使用）
 const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : path.join(process.cwd(), 'data', 'tasks.db');
@@ -27,7 +28,10 @@ function getDatabase(): Database.Database {
     // スキーマを実行
     db.exec(schema);
     
-    console.log('Database initialized successfully');
+    dbLogger.info({ 
+      dbPath: dbPath === ':memory:' ? ':memory:' : 'data/tasks.db',
+      environment: process.env.NODE_ENV 
+    }, 'Database initialized successfully');
   }
   
   return db;
