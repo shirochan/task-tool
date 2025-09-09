@@ -44,3 +44,7 @@ next-env.d.ts
 
 # test coverage
 /coverage
+
+# claude code assistant files
+/.serena
+/.claude
