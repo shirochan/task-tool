@@ -25,7 +25,7 @@ const getLogConfig = () => {
     transport: isTest ? undefined : transport,
     base: {
       pid: undefined, // 本番環境以外ではプロセスIDを非表示
-      hostname: isProduction ? undefined : undefined,
+      hostname: undefined,
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {

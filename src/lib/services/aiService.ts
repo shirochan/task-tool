@@ -156,7 +156,7 @@ export class AIService {
       aiLogger.error({
         error: formatError(error),
         operation: 'consultWithHistory',
-        taskTitle: (sanitizeObject(request.task) as Record<string, unknown>)?.title
+        taskTitle: request.task && typeof request.task === 'object' && 'title' in request.task ? sanitizeObject((request.task as { title?: unknown }).title) : undefined
       }, 'OpenAI API エラー: 会話履歴付き相談処理に失敗');
       throw error;
     }
@@ -223,7 +223,7 @@ export class AIService {
       aiLogger.error({
         error: formatError(error),
         operation: 'estimateTask',
-        taskTitle: (sanitizeObject(request.task) as Record<string, unknown>)?.title
+        taskTitle: request.task && typeof request.task === 'object' && 'title' in request.task ? sanitizeObject((request.task as { title?: unknown }).title) : undefined
       }, 'OpenAI API エラー: タスク見積もり処理に失敗');
       throw error;
     }
