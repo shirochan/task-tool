@@ -88,6 +88,61 @@ docker compose down
 
 This is a Japanese-language AI-powered task management application built with Next.js 15 App Router. The application combines traditional task management with AI-driven work estimation, automatic weekly schedule generation, and comprehensive settings management for personal productivity.
 
+## Logging System
+
+### Overview
+The application uses **Pino** as a high-performance structured logging system with environment-specific configurations and automatic security masking.
+
+### Usage in Code
+
+#### Basic Logger Import
+```typescript
+import { logger, createLogger, apiLogger, dbLogger, aiLogger } from '@/lib/logger';
+```
+
+#### Specialized Loggers
+- **apiLogger**: For API routes and HTTP requests
+- **dbLogger**: For database operations
+- **aiLogger**: For AI service operations
+- **appLogger**: For general application logic
+
+#### Log Levels
+```typescript
+logger.info('Information message');
+logger.warn('Warning message'); 
+logger.error('Error message');
+logger.debug('Debug message'); // Development only
+```
+
+#### Structured Logging
+```typescript
+apiLogger.error({
+  error: formatError(error),
+  endpoint: 'POST /api/tasks',
+  taskData: { title: body?.title, priority: body?.priority }
+}, 'タスク作成に失敗');
+```
+
+#### Security Features
+- **Automatic masking**: Sensitive data (passwords, tokens, API keys) is automatically redacted
+- **Error formatting**: Use `formatError()` for consistent error object logging
+- **Data sanitization**: Use `sanitizeObject()` to clean user data before logging
+
+#### Environment Behavior
+- **Development**: Pretty-printed colorized logs with debug level
+- **Production**: JSON structured logs with info level
+- **Test**: Silent logging to avoid test noise
+
+### Migration from console.log
+Replace existing console statements:
+```typescript
+// Old
+console.error('Database error:', error);
+
+// New  
+dbLogger.error({ error: formatError(error) }, 'Database operation failed');
+```
+
 ### Core Technology Stack
 - **Frontend**: Next.js 15 (App Router) + TypeScript + Tailwind CSS
 - **UI Components**: shadcn/ui (Radix UI based)

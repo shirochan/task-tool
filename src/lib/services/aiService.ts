@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { EstimateRequest, EstimateResponse, type ChatMessage } from '@/lib/types';
 import { createTaskEstimationPrompt, createScheduleRecommendationPrompt, SYSTEM_PROMPTS } from './ai-prompts';
+import { aiLogger, formatError, sanitizeObject } from '@/lib/logger';
 
 // GPT-5-miniのトークン制限定数
 const GPT5_MINI_TOKENS = {
@@ -152,8 +153,11 @@ export class AIService {
       
       return result;
     } catch (error) {
-      console.error('OpenAI API エラー:', error);
-      // エラーをログに記録し、再スローする
+      aiLogger.error({
+        error: formatError(error),
+        operation: 'consultWithHistory',
+        taskTitle: request.task && typeof request.task === 'object' && 'title' in request.task ? sanitizeObject((request.task as { title?: unknown }).title) : undefined
+      }, 'OpenAI API エラー: 会話履歴付き相談処理に失敗');
       throw error;
     }
   }
@@ -216,8 +220,11 @@ export class AIService {
         questions: (obj.questions as string[]) || [],
       };
     } catch (error) {
-      console.error('OpenAI API エラー:', error);
-      // エラーをログに記録し、再スローする
+      aiLogger.error({
+        error: formatError(error),
+        operation: 'estimateTask',
+        taskTitle: request.task && typeof request.task === 'object' && 'title' in request.task ? sanitizeObject((request.task as { title?: unknown }).title) : undefined
+      }, 'OpenAI API エラー: タスク見積もり処理に失敗');
       throw error;
     }
   }
@@ -272,15 +279,23 @@ export class AIService {
           recommendations: parsed.recommendations || ['推奨事項を生成できませんでした'],
           optimizations: parsed.optimizations || [],
         };
-      } catch {
-        console.error('Failed to parse OpenAI response:', response);
+      } catch (parseError) {
+        aiLogger.warn({
+          error: formatError(parseError),
+          responseLength: response?.length || 0,
+          operation: 'generateScheduleRecommendations'
+        }, 'スケジュール推奨事項レスポンスの解析に失敗');
         return {
           recommendations: ['応答の解析に失敗しました'],
           optimizations: [],
         };
       }
     } catch (error) {
-      console.error('OpenAI API error:', error);
+      aiLogger.error({
+        error: formatError(error),
+        operation: 'generateScheduleRecommendations',
+        taskCount: tasks?.length || 0
+      }, 'OpenAI API エラー: スケジュール推奨事項生成に失敗');
       return {
         recommendations: ['AI推奨事項の取得に失敗しました'],
         optimizations: [],
