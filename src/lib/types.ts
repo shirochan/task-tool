@@ -19,6 +19,7 @@ export interface TaskInput {
   priority: 'must' | 'want';
   category?: string;
   estimated_hours?: number;
+  actual_hours?: number;
   status?: TaskStatus;
 }
 

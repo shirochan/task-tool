@@ -17,6 +17,7 @@ import { InfoPanel } from './layout/InfoPanel';
 import { QuickAdd } from './task/QuickAdd';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import type { QuickAction } from './layout/Sidebar';
+import { TaskProgress } from '@/components/ui/progress-bar';
 
 export function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -242,8 +243,16 @@ export function TaskManager() {
                       <span>{formatDate(task.created_at)}</span>
                     </div>
                   </div>
-                  
-                  {/* TODO: actual_hours フィールド実装時に進捗バー表示を有効化 (関連issue: #TBD) */}
+
+                  {/* Progress Bar */}
+                  {task.estimated_hours && task.actual_hours !== undefined && task.actual_hours > 0 && (
+                    <TaskProgress
+                      estimatedHours={task.estimated_hours}
+                      actualHours={task.actual_hours}
+                      size="sm"
+                      showLabel={false}
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

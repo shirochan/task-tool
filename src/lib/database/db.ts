@@ -83,8 +83,8 @@ export const statements = {
   
   get updateTask() {
     return getDatabase().prepare(`
-      UPDATE tasks 
-      SET title = ?, description = ?, priority = ?, category = ?, estimated_hours = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+      UPDATE tasks
+      SET title = ?, description = ?, priority = ?, category = ?, estimated_hours = ?, actual_hours = ?, status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
   },
