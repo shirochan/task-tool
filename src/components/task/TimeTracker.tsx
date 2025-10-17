@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Task } from '@/lib/types';
 import { useToast } from '@/hooks/useToast';
 
+// Constants
+const HOURS_DECIMAL_PRECISION = 100;
+
 interface TimeTrackerProps {
   task: Task;
   onUpdate: (updatedTask: Task) => void;
@@ -18,6 +21,22 @@ interface TimerState {
   isRunning: boolean;
   startTime: number | null;
   elapsedTime: number; // seconds
+}
+
+// Type guard for validating TimerState
+function isValidTimerState(obj: unknown): obj is TimerState {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const state = obj as Record<string, unknown>;
+
+  return (
+    typeof state.isRunning === 'boolean' &&
+    (state.startTime === null || typeof state.startTime === 'number') &&
+    typeof state.elapsedTime === 'number' &&
+    state.elapsedTime >= 0
+  );
 }
 
 export function TimeTracker({ task, onUpdate }: TimeTrackerProps) {
@@ -38,7 +57,15 @@ export function TimeTracker({ task, onUpdate }: TimeTrackerProps) {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as TimerState;
+        const parsed: unknown = JSON.parse(saved);
+
+        // Validate the parsed data before using it
+        if (!isValidTimerState(parsed)) {
+          console.error('Invalid timer state in localStorage:', parsed);
+          localStorage.removeItem(storageKey);
+          return;
+        }
+
         // If timer was running, calculate elapsed time since last save
         if (parsed.isRunning && parsed.startTime) {
           const now = Date.now();
@@ -53,6 +80,7 @@ export function TimeTracker({ task, onUpdate }: TimeTrackerProps) {
         }
       } catch (e) {
         console.error('Failed to parse timer state:', e);
+        localStorage.removeItem(storageKey);
       }
     }
   }, [storageKey]);
@@ -145,7 +173,7 @@ export function TimeTracker({ task, onUpdate }: TimeTrackerProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          actual_hours: Math.round(hours * 100) / 100, // Round to 2 decimal places
+          actual_hours: Math.round(hours * HOURS_DECIMAL_PRECISION) / HOURS_DECIMAL_PRECISION, // Round to 2 decimal places
         }),
       });
 
