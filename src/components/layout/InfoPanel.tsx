@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Task } from '@/lib/types';
 import { getPriorityColorClass, getStatusColorClass, PRIORITY_LABELS } from '@/lib/constants/ui-constants';
+import { TaskProgress } from '@/components/ui/progress-bar';
 
 export interface TaskStatistics {
   totalTasks: number;
@@ -124,11 +125,17 @@ export function InfoPanel({ selectedTask, tasks, className }: InfoPanelProps) {
                 {selectedTask.estimated_hours && (
                   <div>
                     <h3 className="font-medium text-sm text-muted-foreground mb-2">見積もり時間</h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-2">
                       <Clock className="h-4 w-4" />
                       <span className="text-sm">{selectedTask.estimated_hours}時間</span>
                     </div>
-                    {/* TODO: actual_hours フィールド実装時に進捗バー表示を有効化 (関連issue: #TBD) */}
+                    {selectedTask.actual_hours !== undefined && selectedTask.actual_hours > 0 && (
+                      <TaskProgress
+                        estimatedHours={selectedTask.estimated_hours}
+                        actualHours={selectedTask.actual_hours}
+                        size="sm"
+                      />
+                    )}
                   </div>
                 )}
 

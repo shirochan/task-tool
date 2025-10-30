@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Clock, Calendar, Tag, FileText, Star, Edit, Save } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import { TimeTracker } from '@/components/task/TimeTracker';
 
 interface TaskDetailProps {
   task: Task | null;
@@ -315,15 +316,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate }: TaskDetailProps)
             </CardContent>
           </Card>
 
-          {/* 実績時間（将来的に追加） */}
-          {currentTask.actual_hours && (
-            <div>
-              <Label className="text-sm font-medium mb-2 block">実績時間</Label>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className="text-sm">{currentTask.actual_hours}時間</span>
-              </div>
-            </div>
+          {/* TimeTracker - Time Tracking */}
+          {!isEditing && (
+            <TimeTracker task={validatedTask} onUpdate={onUpdate || (() => {})} />
           )}
         </div>
 

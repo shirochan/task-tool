@@ -38,6 +38,7 @@ export class TaskService {
       priority: taskInput.priority ?? existingTask.priority,
       category: taskInput.category ?? existingTask.category,
       estimated_hours: taskInput.estimated_hours ?? existingTask.estimated_hours,
+      actual_hours: taskInput.actual_hours ?? existingTask.actual_hours,
       status: taskInput.status ?? existingTask.status,
     };
 
@@ -47,6 +48,7 @@ export class TaskService {
       updateData.priority,
       updateData.category,
       updateData.estimated_hours,
+      updateData.actual_hours,
       updateData.status,
       id
     );

@@ -75,13 +75,21 @@ export async function PUT(
         { status: 400 }
       );
     }
-    
+
+    if (body.actual_hours !== undefined && (typeof body.actual_hours !== 'number' || body.actual_hours < 0)) {
+      return NextResponse.json(
+        { error: '実績時間は0以上の数値である必要があります' },
+        { status: 400 }
+      );
+    }
+
     const taskInput: Partial<TaskInput> = {
       title: body.title,
       description: body.description,
       priority: body.priority,
       category: body.category,
       estimated_hours: body.estimated_hours,
+      actual_hours: body.actual_hours,
       status: body.status,
     };
 
