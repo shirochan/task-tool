@@ -1,4 +1,4 @@
-FROM node:24-alpine
+FROM node:25-alpine
 
 # better-sqlite3のビルドに必要なパッケージをインストール
 RUN apk add --no-cache python3 make g++
